@@ -39,6 +39,7 @@ namespace CourseMirror.ControlPanel
         private bool _operationStarting;
         private bool _closing;
         private bool _firstRunSetupOffered;
+        private bool _browserReady;
 
         internal MainForm() : this(null, StatusRefreshIntervalMilliseconds, null, new UpdateCheckServiceFactory()) { }
 
@@ -190,6 +191,17 @@ namespace CourseMirror.ControlPanel
                     _firstRunSetupOffered = true;
                     await OpenSettingsAsync(true);
                 }
+                else if (refreshed && !_closing && _backendStatus.configured)
+                {
+                    _browserReady = await InspectBrowserForStartupAsync();
+                    UpdateSyncButtons();
+                    if (!_browserReady && !_closing)
+                    {
+                        SetStatus("Browser Required", Color.DarkGoldenrod);
+                        _activity.Text = "Choose or install a compatible Chromium browser. CourseMirror remains available for configuration.";
+                        await OpenSettingsAsync(false);
+                    }
+                }
                 if (!_closing && _backendStatus != null)
                     StartAutomaticUpdateCheck();
             }
@@ -272,22 +284,22 @@ namespace CourseMirror.ControlPanel
             return true;
         }
 
-        private async Task RunSyncAsync(string mode)
+        private async Task<bool> RunSyncAsync(string mode)
         {
-            if (_closing || _operationRunning || _operationStarting || _backend == null) return;
+            if (_closing || _operationRunning || _operationStarting || _backend == null) return false;
             _operationStarting = true;
             SetSyncButtons(false);
             bool refreshed = await RefreshStatusAsync(false, false, false);
             if (_closing)
             {
                 _operationStarting = false;
-                return;
+                return false;
             }
             if (!refreshed)
             {
                 _operationStarting = false;
                 UpdateSyncButtons();
-                return;
+                return false;
             }
             if (!String.IsNullOrWhiteSpace(_backendStatus.attention))
             {
@@ -295,7 +307,7 @@ namespace CourseMirror.ControlPanel
                 SetStatus("Error", Color.Firebrick);
                 _activity.Text = _backendStatus.attention;
                 UpdateSyncButtons();
-                return;
+                return false;
             }
             if (!String.IsNullOrWhiteSpace(_backendStatus.activeOperation))
             {
@@ -303,14 +315,22 @@ namespace CourseMirror.ControlPanel
                 SetStatus("Running " + _backendStatus.activeOperation, Color.DarkGoldenrod);
                 _activity.Text = "Another CourseMirror operation is currently active.";
                 UpdateSyncButtons();
-                return;
+                return false;
             }
             if (!_backendStatus.configured)
             {
                 _operationStarting = false;
                 _activity.Text = "Setup is not complete. Open Settings to configure CourseMirror.";
                 UpdateSyncButtons();
-                return;
+                return false;
+            }
+            if (!_browserReady)
+            {
+                _operationStarting = false;
+                SetStatus("Browser Required", Color.DarkGoldenrod);
+                _activity.Text = "Open Settings to retry detection or choose a compatible Chromium browser.";
+                UpdateSyncButtons();
+                return false;
             }
 
             _operationStarting = false;
@@ -351,24 +371,25 @@ namespace CourseMirror.ControlPanel
                 _operationRunning = false;
                 UpdateSyncButtons();
             }
+            return result != null && result.ExitCode == 0;
         }
 
-        private async Task RunRefreshLoginAsync()
+        private async Task<bool> RunRefreshLoginAsync()
         {
-            if (_closing || _operationRunning || _operationStarting || _backend == null) return;
+            if (_closing || _operationRunning || _operationStarting || _backend == null) return false;
             _operationStarting = true;
             SetSyncButtons(false);
             bool refreshed = await RefreshStatusAsync(false, false, false);
             if (_closing)
             {
                 _operationStarting = false;
-                return;
+                return false;
             }
             if (!refreshed)
             {
                 _operationStarting = false;
                 UpdateSyncButtons();
-                return;
+                return false;
             }
             if (!String.IsNullOrWhiteSpace(_backendStatus.activeOperation))
             {
@@ -376,14 +397,22 @@ namespace CourseMirror.ControlPanel
                 SetStatus("Running " + _backendStatus.activeOperation, Color.DarkGoldenrod);
                 _activity.Text = "Another CourseMirror operation is currently active.";
                 UpdateSyncButtons();
-                return;
+                return false;
             }
             if (!_backendStatus.configured)
             {
                 _operationStarting = false;
                 _activity.Text = "Setup is not complete. Open Settings before refreshing login.";
                 UpdateSyncButtons();
-                return;
+                return false;
+            }
+            if (!_browserReady)
+            {
+                _operationStarting = false;
+                SetStatus("Browser Required", Color.DarkGoldenrod);
+                _activity.Text = "Open Settings to retry detection or choose a compatible Chromium browser.";
+                UpdateSyncButtons();
+                return false;
             }
 
             _operationStarting = false;
@@ -392,9 +421,11 @@ namespace CourseMirror.ControlPanel
             SetStatus("Running Login Refresh", Color.DarkGoldenrod);
             _activity.Text = "Complete sign-in and any MFA challenge in the browser window.";
 
+            BackendProcessResult completedResult = null;
             try
             {
                 BackendProcessResult result = await _backend.RunRefreshLoginAsync();
+                completedResult = result;
                 await RefreshStatusAsync(false, false, true);
                 if (result.ExitCode == 0)
                 {
@@ -421,6 +452,7 @@ namespace CourseMirror.ControlPanel
                 _operationRunning = false;
                 UpdateSyncButtons();
             }
+            return completedResult != null && completedResult.ExitCode == 0;
         }
 
         private async Task OpenSettingsAsync(bool firstRun)
@@ -436,9 +468,32 @@ namespace CourseMirror.ControlPanel
                     bool refreshed = await RefreshStatusAsync(true, false, false);
                     if (!_closing && refreshed && _backendStatus.configured)
                     {
-                        _activity.Text = String.IsNullOrWhiteSpace(_backendStatus.activeOperation)
-                            ? "Settings saved. Ready."
-                            : "Settings saved. Another CourseMirror operation is currently active.";
+                        _browserReady = await InspectBrowserForStartupAsync();
+                        if (!_browserReady)
+                        {
+                            SetStatus("Browser Required", Color.DarkGoldenrod);
+                            _activity.Text = "Settings were saved, but no compatible Chromium browser is available.";
+                        }
+                        else if (firstRun)
+                        {
+                            _activity.Text = "Settings saved. Complete sign-in and any MFA challenge to continue.";
+                            bool signedIn = await RunRefreshLoginAsync();
+                            if (!_closing && signedIn)
+                            {
+                                _activity.Text = "Sign-in completed. Running the initial Full Sync.";
+                                await RunSyncAsync("full");
+                            }
+                            else if (!_closing)
+                            {
+                                _activity.Text = "Settings were saved, but sign-in did not complete. Use Refresh Login when you are ready; the initial Full Sync was not started.";
+                            }
+                        }
+                        else
+                        {
+                            _activity.Text = String.IsNullOrWhiteSpace(_backendStatus.activeOperation)
+                                ? "Settings saved. Ready."
+                                : "Settings saved. Another CourseMirror operation is currently active.";
+                        }
                     }
                 }
                 else if (_backendStatus != null && !_backendStatus.configured)
@@ -458,6 +513,16 @@ namespace CourseMirror.ControlPanel
             {
                 if (!_closing) _settingsButton.Enabled = true;
             }
+        }
+
+        private async Task<bool> InspectBrowserForStartupAsync()
+        {
+            try
+            {
+                DesktopBrowserSettings browser = await _backend.GetBrowserAsync();
+                return browser != null && browser.available;
+            }
+            catch { return false; }
         }
 
         private void EnsureUpdateChecker()
@@ -612,7 +677,7 @@ namespace CourseMirror.ControlPanel
 
         private void UpdateSyncButtons()
         {
-            bool enabled = !_operationRunning && !_operationStarting && _backendStatus != null && _backendStatus.configured && String.IsNullOrWhiteSpace(_backendStatus.activeOperation);
+            bool enabled = !_operationRunning && !_operationStarting && _browserReady && _backendStatus != null && _backendStatus.configured && String.IsNullOrWhiteSpace(_backendStatus.activeOperation);
             SetSyncButtons(enabled);
         }
 

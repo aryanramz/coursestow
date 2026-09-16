@@ -26,6 +26,7 @@ const RUNTIME_SOURCE_FILES = [
   'courseFolders.mjs',
   'crawler.mjs',
   'deadline-intelligence.mjs',
+  'desktop-browser.mjs',
   'desktop-backend-cli.mjs',
   'desktop-backend.mjs',
   'desktop-settings.mjs',
@@ -45,6 +46,7 @@ const RUNTIME_SOURCE_FILES = [
   'schedule-config.mjs',
   'scheduled.mjs',
   'school-indexes.mjs',
+  'source-import.mjs',
   'status.mjs',
   'sync-lock.mjs',
   'terms.mjs',
@@ -270,11 +272,11 @@ async function build() {
       credentialHelper: 'CourseMirror Credential Helper.exe',
       desktop: {
         technology: '.NET Framework 4.8 WinForms',
-        backendContract: 'status/settings JSON over stdout; settings save JSON over stdin; credentials via private named pipe; scheduled sync via fixed hidden entry point',
+        backendContract: 'status/settings/browser JSON over stdout; settings save/browser probe/source import JSON over stdin; credentials via private named pipe; scheduled sync via fixed hidden entry point',
         backendSchemaVersion: 1
       },
       applicationRoot: 'app',
-      browserStrategy: 'installed Edge, Chrome, or Brave; no bundled browser',
+      browserStrategy: 'installed Chromium-compatible browser; Edge, Chrome, and Brave officially tested; no bundled browser',
       productionDependencies: sourcePackage.dependencies
     };
     await fs.writeFile(path.join(stagedBundle, 'bundle-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');

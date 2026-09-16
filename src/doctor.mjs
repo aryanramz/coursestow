@@ -1,7 +1,7 @@
 import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { findChromiumExecutable } from './browser.mjs';
+import { findCompatibleChromiumExecutable } from './browser.mjs';
 import { loadAppConfig } from './config.mjs';
 
 const { config, paths, migrations } = await loadAppConfig();
@@ -52,7 +52,7 @@ try {
 }
 
 try {
-  const browser = findChromiumExecutable(config.browserExecutablePath || '');
+  const browser = await findCompatibleChromiumExecutable(config.browserExecutablePath || '');
   console.log(`Browser check: PASS (${browser.name}: ${browser.path})`);
 } catch (error) {
   console.error(`Browser check: FAIL (${error.message})`);

@@ -1,5 +1,6 @@
 using CourseMirror.Security;
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -17,18 +18,29 @@ namespace CourseMirror.ControlPanel
     {
         public async Task<bool> ShowAsync(IWin32Window owner, IDesktopBackendClient backend, bool firstRun)
         {
-            DesktopSettings settings = await backend.GetSettingsAsync();
-            using (var form = new SetupSettingsForm(
-                backend, settings, firstRun, new WindowsFolderPicker(),
-                new CompatibleCredentialStore(new WindowsCredentialStore()), new WindowsTaskSchedulerService()))
-                return form.ShowDialog(owner) == DialogResult.OK;
+            while (true)
+            {
+                DesktopSettings settings = await backend.GetSettingsAsync();
+                settings.browser = await backend.GetBrowserAsync();
+                using (var form = new SetupSettingsForm(
+                    backend, settings, firstRun, new WindowsFolderPicker(),
+                    new CompatibleCredentialStore(new WindowsCredentialStore()), new WindowsTaskSchedulerService(),
+                    new WindowsExecutablePicker()))
+                {
+                    DialogResult result = form.ShowDialog(owner);
+                    if (result == DialogResult.Retry) continue;
+                    return result == DialogResult.OK;
+                }
+            }
         }
     }
 
     internal sealed class SetupSettingsForm : Form
     {
+        internal const string EdgeDownloadUrl = "https://www.microsoft.com/edge/download";
         private readonly IDesktopBackendClient _backend;
         private readonly IFolderPicker _folderPicker;
+        private readonly IExecutablePicker _executablePicker;
         private readonly ICredentialStore _credentialStore;
         private readonly ITaskSchedulerService _taskScheduler;
         private readonly TextBox _baseUrl = new TextBox();
@@ -41,6 +53,13 @@ namespace CourseMirror.ControlPanel
         private readonly Button _cancel = new Button();
         private readonly Label _validation = new Label();
         private readonly GroupBox _authenticationGroup = new GroupBox();
+        private readonly GroupBox _browserGroup = new GroupBox();
+        private readonly Label _browserStatus = new Label();
+        private readonly Button _retryBrowser = new Button();
+        private readonly Button _chooseBrowser = new Button();
+        private readonly Button _automaticBrowser = new Button();
+        private readonly LinkLabel _edgeDownload = new LinkLabel();
+        private readonly Button _importSource = new Button();
         private readonly GroupBox _driveGroup = new GroupBox();
         private readonly GroupBox _scheduleGroup = new GroupBox();
         private readonly CheckBox _scheduleEnabled = new CheckBox();
@@ -53,6 +72,9 @@ namespace CourseMirror.ControlPanel
         private readonly Button _removeCredential = new Button();
         private readonly Label _credentialHint = new Label();
         private readonly bool _mirrorOverrideActive;
+        private readonly bool _firstRun;
+        private readonly bool _importSourceAvailable;
+        private string _manualBrowserPath = String.Empty;
         private string _storedCredentialUsername = String.Empty;
         private bool _credentialExists;
         private bool _credentialStateInspected;
@@ -62,12 +84,12 @@ namespace CourseMirror.ControlPanel
         private DesktopScheduleSettings _committedSchedule;
 
         internal SetupSettingsForm(IDesktopBackendClient backend, DesktopSettings settings, bool firstRun, IFolderPicker folderPicker)
-            : this(backend, settings, firstRun, folderPicker, new WindowsCredentialStore(), new PassiveTaskSchedulerService())
+            : this(backend, settings, firstRun, folderPicker, new WindowsCredentialStore(), new PassiveTaskSchedulerService(), new WindowsExecutablePicker())
         {
         }
 
         internal SetupSettingsForm(IDesktopBackendClient backend, DesktopSettings settings, bool firstRun, IFolderPicker folderPicker, ICredentialStore credentialStore)
-            : this(backend, settings, firstRun, folderPicker, credentialStore, new PassiveTaskSchedulerService())
+            : this(backend, settings, firstRun, folderPicker, credentialStore, new PassiveTaskSchedulerService(), new WindowsExecutablePicker())
         {
         }
 
@@ -78,27 +100,43 @@ namespace CourseMirror.ControlPanel
             IFolderPicker folderPicker,
             ICredentialStore credentialStore,
             ITaskSchedulerService taskScheduler)
+            : this(backend, settings, firstRun, folderPicker, credentialStore, taskScheduler, new WindowsExecutablePicker())
+        {
+        }
+
+        internal SetupSettingsForm(
+            IDesktopBackendClient backend,
+            DesktopSettings settings,
+            bool firstRun,
+            IFolderPicker folderPicker,
+            ICredentialStore credentialStore,
+            ITaskSchedulerService taskScheduler,
+            IExecutablePicker executablePicker)
         {
             if (backend == null) throw new ArgumentNullException("backend");
             if (settings == null) throw new ArgumentNullException("settings");
             _backend = backend;
             _folderPicker = folderPicker ?? new WindowsFolderPicker();
+            _executablePicker = executablePicker ?? new WindowsExecutablePicker();
             if (credentialStore == null) throw new ArgumentNullException("credentialStore");
             _credentialStore = credentialStore;
             if (taskScheduler == null) throw new ArgumentNullException("taskScheduler");
             _taskScheduler = taskScheduler;
             _mirrorOverrideActive = settings.mirrorOverrideActive;
+            _firstRun = firstRun;
+            _importSourceAvailable = firstRun && settings.mayImportLegacySetup;
             _committedSchedule = CopySchedule(settings.schedule);
 
             Text = firstRun ? "Set up CourseMirror" : "CourseMirror Settings";
             StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(590, 585);
-            MinimumSize = new Size(606, 624);
+            ClientSize = new Size(610, 700);
+            MinimumSize = new Size(626, 620);
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
             Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
             AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScroll = true;
 
             var title = new Label
             {
@@ -148,10 +186,18 @@ namespace CourseMirror.ControlPanel
                     : "Course files only are stored here. Private app data remains separate."
             };
 
+            ConfigureBrowserGroup(settings);
+
+            _importSource.Text = "Import settings from an existing CourseMirror setup...";
+            _importSource.Location = new Point(25, 365);
+            _importSource.Size = new Size(330, 30);
+            _importSource.Visible = _importSourceAvailable;
+            _importSource.Click += async delegate { await ImportSourceAsync(); };
+
             ConfigureAuthenticationGroup(settings);
 
             _driveGroup.Text = "Google Drive publishing (optional)";
-            _driveGroup.Location = new Point(25, 389);
+            _driveGroup.Location = new Point(25, 534);
             _driveGroup.Size = new Size(540, 105);
             _driveEnabled.AutoSize = true;
             _driveEnabled.Location = new Point(14, 24);
@@ -173,17 +219,17 @@ namespace CourseMirror.ControlPanel
 
             ConfigureScheduleGroup(settings);
 
-            _validation.Location = new Point(25, 504);
+            _validation.Location = new Point(25, 788);
             _validation.Size = new Size(365, 58);
             _validation.ForeColor = Color.Firebrick;
 
-            _save.Text = "Save";
-            _save.Location = new Point(400, 529);
+            _save.Text = firstRun ? "Save && Sign In" : "Save";
+            _save.Location = new Point(400, 817);
             _save.Size = new Size(78, 32);
             _save.TabIndex = 10;
             _save.Click += async delegate { await SaveAsync(null, true); };
             _cancel.Text = "Cancel";
-            _cancel.Location = new Point(487, 529);
+            _cancel.Location = new Point(487, 817);
             _cancel.Size = new Size(78, 32);
             _cancel.TabIndex = 11;
             _cancel.DialogResult = DialogResult.Cancel;
@@ -202,7 +248,7 @@ namespace CourseMirror.ControlPanel
             };
             Controls.AddRange(new Control[] {
                 title, intro, urlLabel, _baseUrl, mirrorLabel, _mirrorDir, _mirrorBrowse,
-                overrideLabel, _authenticationGroup, _driveGroup, _scheduleGroup, _validation, _save, _cancel
+                overrideLabel, _browserGroup, _importSource, _authenticationGroup, _driveGroup, _scheduleGroup, _validation, _save, _cancel
             });
             UpdateDriveControls();
             UpdateAuthenticationControls();
@@ -243,6 +289,22 @@ namespace CourseMirror.ControlPanel
 
         internal string ScheduleHintForSelfTest { get { return _scheduleHint.Text; } }
 
+        internal string BrowserStatusForSelfTest { get { return _browserStatus.Text; } }
+
+        internal string BrowserPathForSelfTest { get { return _manualBrowserPath; } }
+
+        internal bool ImportVisibleForSelfTest { get { return _importSourceAvailable; } }
+
+        internal Task RetryBrowserForSelfTestAsync() { return DetectAutomaticBrowserAsync(); }
+
+        internal Task<bool> ChooseBrowserForSelfTestAsync(string executablePath) { return ValidateManualBrowserAsync(executablePath); }
+
+        internal Task UseAutomaticBrowserForSelfTestAsync()
+        {
+            _manualBrowserPath = String.Empty;
+            return DetectAutomaticBrowserAsync();
+        }
+
         internal void SetScheduleForSelfTest(bool enabled, int intervalHours, int fullIntervalDays)
         {
             _scheduleEnabled.Checked = enabled;
@@ -280,6 +342,160 @@ namespace CourseMirror.ControlPanel
             if (recovery.configRetainedOldLocation)
                 message += "\n\nSettings still point to the old mirror location.";
             return message;
+        }
+
+        private void ConfigureBrowserGroup(DesktopSettings settings)
+        {
+            _browserGroup.Text = "Compatible Chromium browser";
+            _browserGroup.Location = new Point(25, 224);
+            _browserGroup.Size = new Size(540, 132);
+
+            _browserStatus.AutoEllipsis = true;
+            _browserStatus.Location = new Point(14, 23);
+            _browserStatus.Size = new Size(508, 34);
+
+            _retryBrowser.Text = "Retry";
+            _retryBrowser.Location = new Point(14, 76);
+            _retryBrowser.Size = new Size(72, 30);
+            _retryBrowser.Click += async delegate { await DetectAutomaticBrowserAsync(); };
+
+            _chooseBrowser.Text = "Choose browser executable...";
+            _chooseBrowser.Location = new Point(96, 76);
+            _chooseBrowser.Size = new Size(181, 30);
+            _chooseBrowser.Click += async delegate
+            {
+                string selected = _executablePicker.SelectExecutable(this, _manualBrowserPath);
+                if (!String.IsNullOrWhiteSpace(selected)) await ValidateManualBrowserAsync(selected);
+            };
+
+            _automaticBrowser.Text = "Use automatic";
+            _automaticBrowser.Location = new Point(287, 76);
+            _automaticBrowser.Size = new Size(108, 30);
+            _automaticBrowser.Click += async delegate
+            {
+                _manualBrowserPath = String.Empty;
+                await DetectAutomaticBrowserAsync();
+            };
+
+            _edgeDownload.AutoSize = true;
+            _edgeDownload.Text = "Get Microsoft Edge";
+            _edgeDownload.Location = new Point(407, 84);
+            _edgeDownload.LinkClicked += delegate { OpenEdgeDownloadPage(); };
+
+            _browserGroup.Controls.AddRange(new Control[] {
+                _browserStatus, _retryBrowser, _chooseBrowser, _automaticBrowser, _edgeDownload
+            });
+            DesktopBrowserSettings browser = settings.browser;
+            if (browser != null && browser.configuredManually)
+                _manualBrowserPath = browser.executablePath ?? String.Empty;
+            DisplayBrowser(browser);
+        }
+
+        private void DisplayBrowser(DesktopBrowserSettings browser)
+        {
+            if (browser != null && browser.available)
+            {
+                string support = String.Equals(browser.supportLevel, "official", StringComparison.Ordinal)
+                    ? "officially tested"
+                    : (String.Equals(browser.supportLevel, "best-effort", StringComparison.Ordinal) ? "best-effort compatible" : "custom compatible");
+                _browserStatus.ForeColor = Color.DarkGreen;
+                _browserStatus.Text = (browser.configuredManually ? "Manual: " : "Detected: ")
+                    + (browser.displayName ?? "Chromium browser") + " (" + support + ")";
+            }
+            else
+            {
+                _browserStatus.ForeColor = Color.Firebrick;
+                _browserStatus.Text = "No compatible Chromium browser is available. Retry, choose an executable, or install Microsoft Edge.";
+            }
+            _automaticBrowser.Enabled = !_saving && !String.IsNullOrWhiteSpace(_manualBrowserPath);
+        }
+
+        private async Task DetectAutomaticBrowserAsync()
+        {
+            if (_saving) return;
+            _retryBrowser.Enabled = false;
+            _validation.Text = "Checking browser compatibility...";
+            try
+            {
+                DesktopBrowserSettings browser = await _backend.ProbeBrowserAsync(String.Empty);
+                if (String.IsNullOrWhiteSpace(_manualBrowserPath)) DisplayBrowser(browser);
+                _validation.Text = browser.available ? String.Empty : "Install a supported Chromium browser or choose a compatible executable.";
+            }
+            catch
+            {
+                _validation.Text = "Browser detection could not complete. Retry or choose a browser executable.";
+            }
+            finally { if (!IsDisposed) _retryBrowser.Enabled = true; }
+        }
+
+        private async Task<bool> ValidateManualBrowserAsync(string executablePath)
+        {
+            if (_saving) return false;
+            _chooseBrowser.Enabled = false;
+            _validation.Text = "Checking browser compatibility...";
+            try
+            {
+                DesktopBrowserSettings browser = await _backend.ProbeBrowserAsync(executablePath);
+                if (!browser.available)
+                {
+                    DisplayBrowser(browser);
+                    _validation.Text = "The selected file is not a compatible Chromium browser.";
+                    return false;
+                }
+                _manualBrowserPath = Path.GetFullPath(executablePath);
+                browser.configuredManually = true;
+                browser.executablePath = _manualBrowserPath;
+                DisplayBrowser(browser);
+                _validation.Text = String.Empty;
+                return true;
+            }
+            catch
+            {
+                _validation.Text = "The selected file could not be validated as a compatible Chromium browser.";
+                return false;
+            }
+            finally { if (!IsDisposed) _chooseBrowser.Enabled = true; }
+        }
+
+        private async Task ImportSourceAsync()
+        {
+            if (_saving || !_firstRun) return;
+            string selected = _folderPicker.SelectFolder(this, "Choose an existing CourseMirror or Brightspace Sync setup folder.", String.Empty);
+            if (String.IsNullOrWhiteSpace(selected)) return;
+            _saving = true;
+            SetInputsEnabled(false);
+            _validation.Text = "Importing supported settings and private application state...";
+            try
+            {
+                SourceImportResponse response = await _backend.ImportSourceAsync(Path.GetFullPath(selected));
+                if (response != null && response.ok)
+                {
+                    _saving = false;
+                    DialogResult = DialogResult.Retry;
+                    Close();
+                    return;
+                }
+                SettingsValidationError error = response == null || response.errors == null ? null : response.errors.FirstOrDefault();
+                _validation.Text = error == null ? "The selected setup could not be imported safely." : error.message;
+            }
+            catch
+            {
+                _validation.Text = "The selected setup could not be imported safely. The original setup was not changed.";
+            }
+            finally
+            {
+                _saving = false;
+                if (!IsDisposed) SetInputsEnabled(true);
+            }
+        }
+
+        private void OpenEdgeDownloadPage()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo { FileName = EdgeDownloadUrl, UseShellExecute = true });
+            }
+            catch { _validation.Text = "Windows could not open the Microsoft Edge download page."; }
         }
 
         private void ConfigureAuthenticationGroup(DesktopSettings settings)
@@ -360,18 +576,20 @@ namespace CourseMirror.ControlPanel
 
         private void ApplyAuthenticationLayout(bool supported)
         {
-            int driveTop = supported ? 389 : 229;
-            int scheduleTop = supported ? 504 : 344;
-            int validationTop = supported ? 643 : 483;
-            int buttonTop = supported ? 672 : 512;
-            int clientHeight = supported ? 728 : 568;
+            int importOffset = _importSourceAvailable ? 40 : 0;
+            int authenticationTop = 374 + importOffset;
+            int driveTop = (supported ? 534 : 374) + importOffset;
+            int scheduleTop = (supported ? 649 : 489) + importOffset;
+            int validationTop = (supported ? 788 : 628) + importOffset;
+            int buttonTop = (supported ? 817 : 657) + importOffset;
+            int contentHeight = buttonTop + 52;
+            _authenticationGroup.Location = new Point(25, authenticationTop);
             _driveGroup.Location = new Point(25, driveTop);
             _scheduleGroup.Location = new Point(25, scheduleTop);
             _validation.Location = new Point(25, validationTop);
             _save.Location = new Point(400, buttonTop);
             _cancel.Location = new Point(487, buttonTop);
-            MinimumSize = new Size(606, clientHeight + 39);
-            ClientSize = new Size(ClientSize.Width, clientHeight);
+            AutoScrollMinSize = new Size(0, contentHeight);
         }
 
         private void InspectCredentialState()
@@ -581,6 +799,13 @@ namespace CourseMirror.ControlPanel
                     enabled = _scheduleEnabled.Checked,
                     intervalHours = Decimal.ToInt32(_intervalHours.Value),
                     fullIntervalDays = Decimal.ToInt32(_fullIntervalDays.Value)
+                },
+                browser = new DesktopBrowserSettings
+                {
+                    schemaVersion = 1,
+                    engine = "chromium",
+                    executablePath = _manualBrowserPath,
+                    configuredManually = !String.IsNullOrWhiteSpace(_manualBrowserPath)
                 },
                 mirrorAction = mirrorAction
             };
@@ -851,6 +1076,11 @@ namespace CourseMirror.ControlPanel
             _driveEnabled.Enabled = enabled;
             _driveDestination.Enabled = enabled && _driveEnabled.Checked;
             _driveBrowse.Enabled = enabled && _driveEnabled.Checked;
+            _retryBrowser.Enabled = enabled;
+            _chooseBrowser.Enabled = enabled;
+            _automaticBrowser.Enabled = enabled && !String.IsNullOrWhiteSpace(_manualBrowserPath);
+            _edgeDownload.Enabled = enabled;
+            _importSource.Enabled = enabled;
             _automaticLoginEnabled.Enabled = enabled;
             _username.Enabled = enabled && supportedAuthentication && _automaticLoginEnabled.Checked;
             _password.Enabled = enabled && supportedAuthentication && _automaticLoginEnabled.Checked;

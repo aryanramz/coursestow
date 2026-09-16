@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo CourseMirror v2.4.1 - ESTABLISH DEDICATED BROWSER SESSION
+echo CourseMirror - ESTABLISH DEDICATED BROWSER SESSION
 echo.
 where node >nul 2>nul
 if errorlevel 1 (

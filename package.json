@@ -1,6 +1,6 @@
 {
   "name": "coursemirror",
-  "version": "2.4.1",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "description": "CourseMirror — a read-focused Windows mirroring utility for D2L Brightspace.",
@@ -34,6 +34,8 @@
     "runtime-foundation-selftest": "node src/runtime-foundation-selftest.mjs",
     "desktop-backend-selftest": "node src/desktop-backend-selftest.mjs",
     "desktop-settings-selftest": "node src/desktop-settings-selftest.mjs",
+    "browser-selftest": "node src/browser-selftest.mjs",
+    "source-import-selftest": "node src/source-import-selftest.mjs",
     "auth-selftest": "node src/auth-selftest.mjs",
     "build:windows-control-panel": "node scripts/build-windows-control-panel.mjs",
     "build:windows-credential-helper": "node scripts/build-windows-credential-helper.mjs",

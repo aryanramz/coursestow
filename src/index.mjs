@@ -4,7 +4,7 @@ import process from 'node:process';
 import { chromium } from 'playwright';
 import { ensureDir, exists, writeJson } from './utils.mjs';
 import { loadAppConfig } from './config.mjs';
-import { findChromiumExecutable } from './browser.mjs';
+import { findCompatibleChromiumExecutable } from './browser.mjs';
 import { installWriteProtection } from './write-protection.mjs';
 import { resolveCourseDirectory } from './courseFolders.mjs';
 import { ensureMirrorLayout, MIRROR_SCHEMA_VERSION } from './migration.mjs';
@@ -35,7 +35,7 @@ import {
   setAuthAttention
 } from './auth-attention.mjs';
 
-const APP_VERSION = '2.4.1';
+const APP_VERSION = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 function requestedMode() {
   const modeArg = process.argv.find(arg => /^--mode=/i.test(arg));
@@ -69,6 +69,7 @@ function termDisplay(terms) {
 
 async function runSync(mode, config, { scheduledRun = false } = {}) {
   if (!config.baseUrl) throw new Error(`baseUrl is missing from ${config.configFile}.`);
+  const browser = await findCompatibleChromiumExecutable(config.browserExecutablePath);
   await ensureDir(config.outputDir);
   await ensureDir(config.profileDir);
   await removeLegacyPlaintextAuthState(config.profileDir);
@@ -104,7 +105,6 @@ async function runSync(mode, config, { scheduledRun = false } = {}) {
   config._diagnosticSequence = 0;
   config._courseTermById = {};
 
-  const browser = findChromiumExecutable(config.browserExecutablePath);
   console.log(`Browser:     ${browser.name} (${browser.path})`);
 
   const context = await chromium.launchPersistentContext(

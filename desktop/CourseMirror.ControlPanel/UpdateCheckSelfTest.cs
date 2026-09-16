@@ -85,26 +85,26 @@ namespace CourseMirror.ControlPanel
             try
             {
                 StableVersion parsed;
-                bool strictParsing = StableVersion.TryParse("v2.4.1", true, out parsed)
-                    && parsed.ToString() == "2.4.1"
-                    && !StableVersion.TryParse("2.4.1", true, out parsed)
-                    && !StableVersion.TryParse("v02.4.1", true, out parsed)
-                    && !StableVersion.TryParse("v2.04.1", true, out parsed)
-                    && !StableVersion.TryParse("v2.4.01", true, out parsed)
-                    && !StableVersion.TryParse("v2.4.1.0", true, out parsed)
-                    && !StableVersion.TryParse("v2.4.1-beta", true, out parsed)
+                bool strictParsing = StableVersion.TryParse("v3.0.0", true, out parsed)
+                    && parsed.ToString() == "3.0.0"
+                    && !StableVersion.TryParse("3.0.0", true, out parsed)
+                    && !StableVersion.TryParse("v03.0.0", true, out parsed)
+                    && !StableVersion.TryParse("v3.00.0", true, out parsed)
+                    && !StableVersion.TryParse("v3.0.00", true, out parsed)
+                    && !StableVersion.TryParse("v3.0.0.0", true, out parsed)
+                    && !StableVersion.TryParse("v3.0.0-beta", true, out parsed)
                     && !StableVersion.TryParse("v2147483648.0.0", true, out parsed)
-                    && !StableVersion.TryParse("2.4.1?token=fake-marker", false, out parsed);
+                    && !StableVersion.TryParse("3.0.0?token=fake-marker", false, out parsed);
 
+                StableVersion v300;
+                StableVersion v301;
                 StableVersion v241;
-                StableVersion v250;
-                StableVersion v199;
+                StableVersion.TryParse("3.0.0", false, out v300);
+                StableVersion.TryParse("3.0.1", false, out v301);
                 StableVersion.TryParse("2.4.1", false, out v241);
-                StableVersion.TryParse("2.5.0", false, out v250);
-                StableVersion.TryParse("1.99.99", false, out v199);
-                bool semanticComparison = v250.CompareTo(v241) > 0 && v199.CompareTo(v241) < 0 && v241.CompareTo(v241) == 0;
+                bool semanticComparison = v301.CompareTo(v300) > 0 && v241.CompareTo(v300) < 0 && v300.CompareTo(v300) == 0;
 
-                var http = new GitHubUpdateHttpTransport("2.4.1");
+                var http = new GitHubUpdateHttpTransport("3.0.0");
                 bool exactEndpoint;
                 bool versionedUserAgent;
                 bool requestHasNoAuthorization;
@@ -113,7 +113,7 @@ namespace CourseMirror.ControlPanel
                     exactEndpoint = request.Method == HttpMethod.Get
                         && request.RequestUri.AbsoluteUri == "https://api.github.com/repos/aryanramz/coursemirror/releases/latest"
                         && request.Headers.IfNoneMatch.Count == 1;
-                    versionedUserAgent = request.Headers.UserAgent.ToString() == "CourseMirror/2.4.1";
+                    versionedUserAgent = request.Headers.UserAgent.ToString() == "CourseMirror/3.0.0";
                     requestHasNoAuthorization = request.Headers.Authorization == null;
                 }
 
@@ -122,17 +122,17 @@ namespace CourseMirror.ControlPanel
                 var primaryStore = new FileUpdateCheckCacheStore(primaryData);
                 const string secretMarker = "response-secret-marker";
                 var primaryTransport = new ScriptedUpdateTransport(
-                    Response(HttpStatusCode.OK, "v2.5.0", false, false, "\"etag-one\"", secretMarker));
-                var service = new UpdateCheckService("2.4.1", primaryStore, primaryTransport, clock);
+                    Response(HttpStatusCode.OK, "v3.0.1", false, false, "\"etag-one\"", secretMarker));
+                var service = new UpdateCheckService("3.0.0", primaryStore, primaryTransport, clock);
                 UpdateCheckResult newer = await service.CheckAsync(false);
                 string cacheText = File.ReadAllText(primaryStore.CacheFile);
                 var cacheObject = new JavaScriptSerializer().DeserializeObject(cacheText) as IDictionary<string, object>;
                 string[] allowed = { "schemaVersion", "lastAttemptUtc", "etag", "latestVersion", "releaseUrl" };
                 bool allowlistOnly = cacheObject != null && cacheObject.Keys.All(key => allowed.Contains(key));
-                bool localUrl = newer.ReleaseUrl == "https://github.com/aryanramz/coursemirror/releases/tag/v2.5.0"
+                bool localUrl = newer.ReleaseUrl == "https://github.com/aryanramz/coursemirror/releases/tag/v3.0.1"
                     && newer.ReleaseUrl.IndexOf(secretMarker, StringComparison.Ordinal) < 0
                     && UpdateCheckService.IsTrustedReleaseUrl(newer.ReleaseUrl)
-                    && !UpdateCheckService.IsTrustedReleaseUrl("https://example.test/releases/tag/v2.5.0");
+                    && !UpdateCheckService.IsTrustedReleaseUrl("https://example.test/releases/tag/v3.0.1");
 
                 clock.Advance(TimeSpan.FromHours(25));
                 primaryTransport.Enqueue(new UpdateHttpResponse { StatusCode = HttpStatusCode.NotModified });
@@ -141,11 +141,11 @@ namespace CourseMirror.ControlPanel
                     && notModified.Outcome == UpdateCheckOutcome.UpdateAvailable
                     && notModified.ReleaseUrl == newer.ReleaseUrl;
 
-                UpdateCheckResult current = await CheckSingleAsync(root, "current", "2.4.1", Response(HttpStatusCode.OK, "v2.4.1", false, false, null, null));
-                UpdateCheckResult older = await CheckSingleAsync(root, "older", "2.4.1", Response(HttpStatusCode.OK, "v1.99.99", false, false, null, null));
-                UpdateCheckResult draft = await CheckSingleAsync(root, "draft", "2.4.1", Response(HttpStatusCode.OK, "v9.0.0", true, false, null, null));
-                UpdateCheckResult prerelease = await CheckSingleAsync(root, "prerelease", "2.4.1", Response(HttpStatusCode.OK, "v9.0.0", false, true, null, null));
-                UpdateCheckResult malformed = await CheckSingleAsync(root, "malformed", "2.4.1", new UpdateHttpResponse
+                UpdateCheckResult current = await CheckSingleAsync(root, "current", "3.0.0", Response(HttpStatusCode.OK, "v3.0.0", false, false, null, null));
+                UpdateCheckResult older = await CheckSingleAsync(root, "older", "3.0.0", Response(HttpStatusCode.OK, "v2.4.1", false, false, null, null));
+                UpdateCheckResult draft = await CheckSingleAsync(root, "draft", "3.0.0", Response(HttpStatusCode.OK, "v9.0.0", true, false, null, null));
+                UpdateCheckResult prerelease = await CheckSingleAsync(root, "prerelease", "3.0.0", Response(HttpStatusCode.OK, "v9.0.0", false, true, null, null));
+                UpdateCheckResult malformed = await CheckSingleAsync(root, "malformed", "3.0.0", new UpdateHttpResponse
                 {
                     StatusCode = HttpStatusCode.OK,
                     Body = "{\"tag_name\":\"v09.0.0\",\"draft\":false,\"prerelease\":false,\"html_url\":\"https://example.test/" + secretMarker + "\"}"
@@ -153,9 +153,9 @@ namespace CourseMirror.ControlPanel
 
                 var autoTransport = new ScriptedUpdateTransport(
                     new UpdateHttpResponse { StatusCode = HttpStatusCode.ServiceUnavailable },
-                    Response(HttpStatusCode.OK, "v2.5.0", false, false, null, null));
+                    Response(HttpStatusCode.OK, "v3.0.1", false, false, null, null));
                 var autoClock = new FakeUpdateCheckClock(clock.UtcNow);
-                var autoService = new UpdateCheckService("2.4.1", new FileUpdateCheckCacheStore(Path.Combine(root, "automatic retry")), autoTransport, autoClock);
+                var autoService = new UpdateCheckService("3.0.0", new FileUpdateCheckCacheStore(Path.Combine(root, "automatic retry")), autoTransport, autoClock);
                 UpdateCheckResult autoFailure = await autoService.CheckAsync(false);
                 UpdateCheckResult throttledFailure = await autoService.CheckAsync(false);
                 int callsAfterThrottle = autoTransport.CallCount;
@@ -163,34 +163,34 @@ namespace CourseMirror.ControlPanel
 
                 var retryTransport = new ScriptedUpdateTransport(
                     new UpdateHttpResponse { StatusCode = HttpStatusCode.ServiceUnavailable },
-                    Response(HttpStatusCode.OK, "v2.5.0", false, false, null, null));
-                var retryService = new UpdateCheckService("2.4.1", new FileUpdateCheckCacheStore(Path.Combine(root, "manual retry")), retryTransport, new FakeUpdateCheckClock(clock.UtcNow));
+                    Response(HttpStatusCode.OK, "v3.0.1", false, false, null, null));
+                var retryService = new UpdateCheckService("3.0.0", new FileUpdateCheckCacheStore(Path.Combine(root, "manual retry")), retryTransport, new FakeUpdateCheckClock(clock.UtcNow));
                 UpdateCheckResult retryResult = await retryService.CheckAsync(true);
 
                 var permanentTransport = new ScriptedUpdateTransport(
                     new UpdateHttpResponse { StatusCode = HttpStatusCode.NotFound },
-                    Response(HttpStatusCode.OK, "v2.5.0", false, false, null, null));
-                var permanentService = new UpdateCheckService("2.4.1", new FileUpdateCheckCacheStore(Path.Combine(root, "permanent failure")), permanentTransport, new FakeUpdateCheckClock(clock.UtcNow));
+                    Response(HttpStatusCode.OK, "v3.0.1", false, false, null, null));
+                var permanentService = new UpdateCheckService("3.0.0", new FileUpdateCheckCacheStore(Path.Combine(root, "permanent failure")), permanentTransport, new FakeUpdateCheckClock(clock.UtcNow));
                 await permanentService.CheckAsync(true);
 
                 var timeoutTransport = new ScriptedUpdateTransport(
                     new TaskCanceledException("Synthetic timeout."),
-                    Response(HttpStatusCode.OK, "v2.5.0", false, false, null, null));
-                var timeoutService = new UpdateCheckService("2.4.1", new FileUpdateCheckCacheStore(Path.Combine(root, "timeout retry")), timeoutTransport, new FakeUpdateCheckClock(clock.UtcNow));
+                    Response(HttpStatusCode.OK, "v3.0.1", false, false, null, null));
+                var timeoutService = new UpdateCheckService("3.0.0", new FileUpdateCheckCacheStore(Path.Combine(root, "timeout retry")), timeoutTransport, new FakeUpdateCheckClock(clock.UtcNow));
                 UpdateCheckResult timeoutResult = await timeoutService.CheckAsync(true);
 
                 string invalid304Data = Path.Combine(root, "invalid 304");
                 Directory.CreateDirectory(Path.Combine(invalid304Data, "state"));
-                File.WriteAllText(Path.Combine(invalid304Data, "state", FileUpdateCheckCacheStore.FileName), "{\"schemaVersion\":1,\"lastAttemptUtc\":\"broken\",\"etag\":\"\\\"etag\\\"\",\"latestVersion\":\"v2.5.0\",\"releaseUrl\":\"https://example.test/unsafe\"}");
+                File.WriteAllText(Path.Combine(invalid304Data, "state", FileUpdateCheckCacheStore.FileName), "{\"schemaVersion\":1,\"lastAttemptUtc\":\"broken\",\"etag\":\"\\\"etag\\\"\",\"latestVersion\":\"v3.0.1\",\"releaseUrl\":\"https://example.test/unsafe\"}");
                 var invalid304Transport = new ScriptedUpdateTransport(new UpdateHttpResponse { StatusCode = HttpStatusCode.NotModified });
-                var invalid304Service = new UpdateCheckService("2.4.1", new FileUpdateCheckCacheStore(invalid304Data), invalid304Transport, new FakeUpdateCheckClock(clock.UtcNow));
+                var invalid304Service = new UpdateCheckService("3.0.0", new FileUpdateCheckCacheStore(invalid304Data), invalid304Transport, new FakeUpdateCheckClock(clock.UtcNow));
                 UpdateCheckResult invalid304 = await invalid304Service.CheckAsync(false);
 
                 string corruptData = Path.Combine(root, "corrupt cache");
                 Directory.CreateDirectory(Path.Combine(corruptData, "state"));
                 File.WriteAllText(Path.Combine(corruptData, "state", FileUpdateCheckCacheStore.FileName), "not-json-" + secretMarker);
-                var corruptTransport = new ScriptedUpdateTransport(Response(HttpStatusCode.OK, "v2.5.0", false, false, null, null));
-                var corruptService = new UpdateCheckService("2.4.1", new FileUpdateCheckCacheStore(corruptData), corruptTransport, new FakeUpdateCheckClock(clock.UtcNow));
+                var corruptTransport = new ScriptedUpdateTransport(Response(HttpStatusCode.OK, "v3.0.1", false, false, null, null));
+                var corruptService = new UpdateCheckService("3.0.0", new FileUpdateCheckCacheStore(corruptData), corruptTransport, new FakeUpdateCheckClock(clock.UtcNow));
                 UpdateCheckResult corrupt = await corruptService.CheckAsync(false);
 
                 bool noTemporaryFiles = !Directory.EnumerateFiles(Path.Combine(primaryData, "state"), "*.tmp-*", SearchOption.TopDirectoryOnly).Any();
@@ -199,7 +199,7 @@ namespace CourseMirror.ControlPanel
                 var uiStatus = new BackendStatus
                 {
                     schemaVersion = 1,
-                    appVersion = "2.4.1",
+                    appVersion = "3.0.0",
                     configured = true,
                     baseUrlConfigured = true,
                     mirrorDir = Path.Combine(root, "mirror"),
@@ -238,13 +238,13 @@ namespace CourseMirror.ControlPanel
                     uiService.Complete(new UpdateCheckResult
                     {
                         Outcome = UpdateCheckOutcome.UpdateAvailable,
-                        LatestVersion = "2.5.0",
-                        ReleaseUrl = UpdateCheckService.BuildReleaseUrl("2.5.0"),
+                        LatestVersion = "3.0.1",
+                        ReleaseUrl = UpdateCheckService.BuildReleaseUrl("3.0.1"),
                         NetworkAttempted = true
                     });
                     await delayedUiCheck;
                     noticeDisplayed = form.UpdateAvailableForSelfTest
-                        && form.UpdateTextForSelfTest.IndexOf("2.5.0", StringComparison.Ordinal) >= 0;
+                        && form.UpdateTextForSelfTest.IndexOf("3.0.1", StringComparison.Ordinal) >= 0;
 
                     uiService.ImmediateResult = new UpdateCheckResult { Outcome = UpdateCheckOutcome.UpToDate, NetworkAttempted = true };
                     await form.CheckForUpdatesForSelfTestAsync(true);
@@ -297,7 +297,7 @@ namespace CourseMirror.ControlPanel
                     cacheContainsNoResponseSecrets = cacheText.IndexOf(secretMarker, StringComparison.Ordinal) < 0,
                     cacheWriteIsAtomic = noTemporaryFiles,
                     releaseUrlConstructedLocally = localUrl,
-                    applicationVersionFromBinaryMetadata = binaryVersion == "2.4.1",
+                    applicationVersionFromBinaryMetadata = binaryVersion == "3.0.0",
                     automaticCheckDoesNotBlockInitialization = automaticNonBlocking,
                     updateChecksDoNotOverlap = noOverlap,
                     updateNoticeDisplayed = noticeDisplayed,

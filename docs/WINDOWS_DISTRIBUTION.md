@@ -71,7 +71,7 @@ New configs set `drivePublish.enabled` to `false` and leave `destination` blank.
 
 The bundle contains a private, checksum-verified Node.js 24.20.0 x64 runtime at `runtime\node.exe`. Node 24 is used because Node 20 reached end of life in March 2026; Node 24 remains supported LTS. The packaged `CourseMirror.cmd` resolves both the private runtime and `app\src\launcher.mjs` relative to its own location, so it does not use `node` from `PATH` or depend on the caller's working directory. End users do not need Node.js, npm, Git, or a source checkout, and the launcher does not require PowerShell execution-policy changes.
 
-The packaged application tree contains only runtime source, the generic example configuration, application/runtime licenses, and locked production dependencies. Playwright's JavaScript runtime is installed with lifecycle scripts and browser downloads disabled. Chromium is not bundled: the current runtime continues to use an installed Edge, Chrome, or Brave browser.
+The packaged application tree contains only runtime source, the generic example configuration, application/runtime licenses, and locked production dependencies. Playwright's JavaScript runtime is installed with lifecycle scripts and browser downloads disabled. Browser binaries are not bundled: Microsoft Edge, Google Chrome, and Brave are officially tested; Vivaldi, Opera, Opera GX, and Chromium use best-effort fixed-location discovery, and users may select another compatible Chromium executable.
 
 The package layout is:
 
@@ -113,7 +113,7 @@ Its schema version 1 response contains only GUI-safe state:
 ```json
 {
   "schemaVersion": 1,
-  "appVersion": "2.4.1",
+  "appVersion": "3.0.0",
   "status": "ready",
   "configExists": true,
   "configured": false,
@@ -139,7 +139,7 @@ Open Mirror and View Logs use the paths from the status response. C# does not de
 
 ## First-run setup and Settings (Milestone 2B.2)
 
-When `status --json` reports `configured: false`, the control panel automatically opens the shared **Set up CourseMirror** form. Cancelling leaves the per-user configuration unconfigured and keeps Quick Sync and Full Sync disabled. Saving does not trigger login or synchronization; it refreshes status and enables sync commands only after Node reports the application configured. The Settings button opens the same form with current values.
+When `status --json` reports `configured: false`, the control panel automatically opens the shared **Set up CourseMirror** form. Cancelling leaves the per-user configuration unconfigured and keeps Quick Sync and Full Sync disabled. The primary fresh-install action is **Save & Sign In**. A successful save refreshes status, runs the existing locked **Refresh Login** path, waits for normal SSO/MFA completion, and starts exactly one ordinary Full Sync only after authentication succeeds. A cancelled or failed sign-in preserves valid settings and does not start Full Sync. A failed initial Full Sync preserves both configuration and the authenticated BrowserProfile so the user can retry from the control panel. The Settings button opens the same form with current values, while an already configured or preserved runtime never reruns first-run orchestration merely because the application was reinstalled.
 
 The GUI obtains settings from:
 
@@ -147,7 +147,11 @@ The GUI obtains settings from:
 runtime\node.exe app\src\launcher.mjs settings --json
 ```
 
-Schema version 1 exposes only `configured`, `baseUrl`, the effective `mirrorDir`, `mirrorOverrideActive`, optional Drive `enabled`/`destination` fields, and non-secret authentication availability/enabled flags. It never exposes usernames, passwords, credentials, cookies, tokens, browser-session data, profile contents, or unrelated configuration. Saves use `settings save --json`; the versioned non-secret JSON request is written to standard input and never placed in command-line arguments, environment variables, or logs. Node performs HTTPS URL normalization and validation, validates absolute paths and protected-path separation, merges the supported fields into the existing schema, preserves unexposed settings, and atomically replaces `config.json` under the existing initialization lock.
+Schema version 1 exposes only `configured`, `baseUrl`, the effective `mirrorDir`, `mirrorOverrideActive`, optional Drive `enabled`/`destination` fields, browser availability/display/source/validation metadata, import eligibility, and non-secret authentication availability/enabled flags. It never exposes usernames, passwords, credentials, cookies, tokens, browser-session data, profile contents, or unrelated configuration. Saves use `settings save --json`; browser probes and imports likewise use bounded versioned JSON through standard input. User paths and settings never appear in command-line arguments, environment variables, or logs. Node performs HTTPS URL normalization and validation, validates absolute paths and protected-path separation, merges the supported fields into the existing schema, preserves unexposed settings, and atomically replaces `config.json` under the existing initialization lock.
+
+The browser section keeps the existing `browserExecutablePath` config key. A blank value means automatic detection; a non-empty absolute path means explicit manual selection and takes priority. Automatic discovery checks only fixed per-user and machine installation locations and never recursively scans user directories. Each candidate must pass a bounded headless Playwright Chromium probe against a local `data:` page using a unique temporary profile. The probe never uses the authenticated BrowserProfile, reaches Brightspace, retains cookies, or leaves temporary data. Missing-browser recovery offers **Retry**, **Choose browser executable**, **Use automatic**, the fixed trusted Microsoft Edge download page, and **Cancel**. It never downloads or silently installs a browser.
+
+Eligible fresh installations can choose **Import settings from an existing CourseMirror setup** and explicitly select a CourseMirror or supported pre-rename Brightspace Sync source-checkout directory. CourseMirror performs no disk-wide search and guesses no personal path. The importer rejects reparse-point roots/entries, validates compatible config, strips plaintext credential-like fields, stages the entire supported import, and promotes it under the existing locks with rollback on failure. Only config, BrowserProfile (including the historical `.brightspace-profile` layout), and allowlisted continuity state are imported. School mirror and Drive contents remain referenced at their existing paths and are never copied or moved; source code, `.git`, `node_modules`, build output, logs, arbitrary files, and plaintext credentials are ignored. The source is never modified or deleted, and meaningful installed runtime data can never be overwritten by this path.
 
 Fresh setup suggests `CourseMirror` under the actual Windows Documents known folder returned by `.NET`, so redirected OneDrive or policy-controlled Documents locations are respected. The user may edit or browse to any suitable absolute school-folder location. Private runtime data remains under the Node-resolved data directory and is never placed inside or moved with the mirror.
 
@@ -256,7 +260,7 @@ The supported baseline is Windows 10 version 22H2 (build 19045) or later on x64 
 
 ## Windows installer lifecycle management (Milestone 2C.2)
 
-The permanent per-user App ID identifies fresh install, upgrade, and same-version repair. Installed and incoming versions are parsed and compared numerically. A newer incoming version upgrades in place, the same version repairs the managed payload, and an older incoming version is blocked without a force-downgrade path. Version remains `2.4.1` for this milestone.
+The permanent per-user App ID identifies fresh install, upgrade, and same-version repair. Installed and incoming versions are parsed and compared numerically. A newer incoming version upgrades in place, the same version repairs the managed payload, and an older incoming version is blocked without a force-downgrade path. The current reviewed release-candidate version is `3.0.0`.
 
 Install, upgrade, repair, and uninstall run a hidden CourseMirror-owned preflight before application files are changed. The incoming install payload supplies the trusted preflight copy for setup; uninstall uses the installed executable. Preflight checks the canonical and legacy control-panel mutexes, the credential-helper activity mutex, and the Node status contract's authoritative active-operation result. That preserves the existing live/dead-PID and stale foreign/malformed lock semantics. Busy state presents Retry/Cancel and never force-kills CourseMirror, Node, credential helper, or browser processes.
 
@@ -300,11 +304,19 @@ Safe maintainer procedure for a future release:
 4. Monitor the **Official Release** workflow. It refuses malformed/mismatched tags and an existing same-tag release, and publishes only after every prerequisite job succeeds.
 5. Confirm the published release is stable (not draft/prerelease) and contains exactly `CourseMirror-<version>-Setup.exe` and `CourseMirror-<version>-Setup.exe.sha256`. Verify the sidecar before distributing the installer.
 
-Milestone 2C.3 adds the mechanism only. Version remains `2.4.1`; no tag or GitHub Release is created as part of this implementation. Artifacts remain unsigned until the later code-signing milestone, so users must not be instructed to weaken SmartScreen or other Windows protections. Clean-Windows-VM qualification also remains later release-readiness work.
+Milestone 2C.3 added the mechanism without publishing a release. Milestone 2C.4 advances the authoritative package version to `3.0.0`, but creates no tag or GitHub Release. Artifacts remain unsigned, so Windows may display **Unknown Publisher**; users must not be instructed to weaken SmartScreen or other Windows protections. Clean-Windows-VM qualification remains Milestone 2D.
+
+## Windows v3 finalization (Milestone 2C.4)
+
+`package.json` is the single version source and is now `3.0.0`. Generated compilation attributes produce `3.0.0.0` AssemblyVersion/FileVersion and `3.0.0` informational version for both Windows executables. The same value drives `bundle-manifest.json`, packaged `app\package.json`, installer ProductVersion/Installed Apps metadata, update-check User-Agent, setup filename `CourseMirror-3.0.0-Setup.exe`, checksum filename `CourseMirror-3.0.0-Setup.exe.sha256`, and strict release-tag validation.
+
+The fixed per-user install remains `%LOCALAPPDATA%\Programs\CourseMirror`, private data remains `%LOCALAPPDATA%\CourseMirror`, and mirror/Drive locations remain separate user choices. The installer requires Windows 10 22H2 build 19045+ or Windows 11 x64 and .NET Framework 4.8+, requires no administrator access, bundles private Node.js but no browser, and retains App ID `7E264BC7-FCBE-4BF2-9A24-E342C533A770`. Default uninstall preserves private data, credentials, browser session, school mirror, and Drive copy; there is no telemetry.
+
+Version 3.0.0 is a reviewed release-candidate state only. This milestone performs no final product rename or icon design, creates no tag/release, adds no code signing, and does not claim clean-VM qualification. Those remain explicit later gates.
 
 ## Deferred / Later Improvements
 
-The items below are **non-blocking**. They are not required before moving to installer and UI work, and they do not prevent the Windows distribution foundation from being considered complete.
+The items below are **non-blocking**. They are not required for the reviewed Windows v3 release-candidate implementation, and they do not prevent the distribution foundation from being considered complete.
 
 ### Accepted current tradeoffs
 
@@ -318,7 +330,6 @@ The items below are **non-blocking**. They are not required before moving to ins
 
 - Add more defensive browser-profile recovery that can restore or promote `.incomplete` when the replacement and subsequent legacy-source retry are unavailable.
 - Consider making the foreign or malformed initialization-lock stale period configurable, and add maintenance cleanup for stale orphan `.tmp-*` files.
-- Provide safe discovery and migration of an older source checkout during installation, including an option for the user to select the old installation when it cannot be found automatically.
 - Consider both per-user/no-admin and per-machine installation. Do not hard-code a `Program Files`-only installation unless that decision is made explicitly later.
 - Consider crash-recovery journaling for the very small interruption windows during a same-volume rename or a staged cross-volume mirror relocation. Handled filesystem/configuration failures already roll back and retain the old configuration.
 
@@ -331,10 +342,9 @@ The following work remains intentionally deferred to later milestones:
 - repair testing
 - uninstall testing
 - code signing
-- optional automatic updates
 
 Future installer metadata must use product name `CourseMirror`, publisher `aryanramz`, default install directory `%LOCALAPPDATA%\Programs\CourseMirror\`, main executable `CourseMirror.exe`, credential helper `CourseMirror Credential Helper.exe`, and setup filename `CourseMirror-<version>-Setup.exe`. The permanent Inno Setup App ID remains `7E264BC7-FCBE-4BF2-9A24-E342C533A770`; it must not change during the rename.
 
-Additional institution adapters and changes required by future SSO page revisions remain later enhancements. Installer, upgrade, repair, uninstall, signing, and release behavior remain part of Milestone 2C.
+Additional institution adapters and changes required by future SSO page revisions remain later enhancements. Clean-VM install, upgrade, repair, and uninstall qualification; signing; final naming; and public release remain later gates.
 
 No installer artifact should be published until the applicable install, upgrade, repair, and uninstall flows pass end-to-end testing.

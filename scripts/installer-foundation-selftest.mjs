@@ -25,7 +25,10 @@ const credentialHelperAssemblyInfo = await read('desktop/CourseMirror.Credential
 const workflow = await read('.github/workflows/ci.yml');
 
 assert.equal(packageJson.name, 'coursemirror');
-assert.equal(packageJson.version, '2.4.1', '2C.1 must not bump the application to 3.0.0');
+assert.equal(packageJson.version, '3.0.0', 'Windows v3 packaging must use the authoritative 3.0.0 version');
+for (const wrapper of ['FULL_SYNC.cmd', 'PUBLISH_TO_DRIVE.cmd', 'QUICK_SYNC.cmd', 'SCHEDULED_SYNC.cmd', 'SETUP_LOGIN.cmd', 'START_HERE.cmd']) {
+  assert.doesNotMatch(await read(wrapper), /CourseMirror\s+v\d+\.\d+\.\d+/i, `${wrapper} must not duplicate the package version`);
+}
 assert.equal(packageJson.scripts['build:windows-installer'], 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-installer.ps1');
 assert.equal(packageJson.scripts['installer-foundation-selftest'], 'node scripts/installer-foundation-selftest.mjs');
 assert.match(assetsReadme, /default artwork/i);
@@ -175,7 +178,7 @@ if (process.platform === 'win32') {
     await createSyntheticRepository(mismatchRoot, { manifestVersion: '9.9.9' });
     result = await runPowerShell(path.join(mismatchRoot, 'scripts', 'build-windows-installer.ps1'), mismatchRoot, { ISCC_PATH: path.join(temp, 'not-used.exe') });
     assert.notEqual(result.code, 0);
-    assert.match(result.output, /Portable bundle manifest version mismatch: expected 2\.4\.1, found 9\.9\.9\./);
+    assert.match(result.output, new RegExp(`Portable bundle manifest version mismatch: expected ${packageJson.version.replaceAll('.', '\\.')}.*, found 9\\.9\\.9\\.`));
 
     const staleBinaryRoot = path.join(temp, 'stale binary repo');
     await createSyntheticRepository(staleBinaryRoot, { packageVersion: '9.9.9' });

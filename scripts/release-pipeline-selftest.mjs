@@ -15,14 +15,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await fs.readFile(path.join(ROOT, 'package.json'), 'utf8'));
 const workflow = await fs.readFile(path.join(ROOT, '.github', 'workflows', 'release.yml'), 'utf8');
 
-assert.equal(packageJson.version, '2.4.1', 'Milestone 2C.3 must not bump the application version');
-assert.equal(parseStableReleaseTag('v2.4.1'), '2.4.1');
+assert.equal(packageJson.version, '3.0.0', 'Milestone 2C.4 must finalize the application version at 3.0.0');
+assert.equal(parseStableReleaseTag('v3.0.0'), '3.0.0');
 for (const invalid of [
-  '2.4.1', 'V2.4.1', 'v02.4.1', 'v2.04.1', 'v2.4.01', 'v2.4', 'v2.4.1.0',
-  'v2.4.1-beta', 'v2.4.1+build', 'v2147483648.0.0', 'v2.4.1/unsafe'
+  '3.0.0', 'V3.0.0', 'v03.0.0', 'v3.00.0', 'v3.0.00', 'v3.0', 'v3.0.0.0',
+  'v3.0.0-beta', 'v3.0.0+build', 'v2147483648.0.0', 'v3.0.0/unsafe'
 ]) assert.throws(() => parseStableReleaseTag(invalid), /release tag/i);
-assert.equal(validateTagMatchesPackage('v2.4.1', packageJson.version), packageJson.version);
-assert.throws(() => validateTagMatchesPackage('v2.4.2', packageJson.version), /does not match/);
+assert.equal(validateTagMatchesPackage('v3.0.0', packageJson.version), packageJson.version);
+assert.throws(() => validateTagMatchesPackage('v3.0.1', packageJson.version), /does not match/);
+assert.throws(() => validateTagMatchesPackage('v2.4.1', packageJson.version), /does not match/);
 
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-release-contract-'));
 try {
@@ -35,7 +36,7 @@ try {
   await fs.writeFile(sidecar, `${digest}  ${installerName}`, 'ascii');
   const validated = await validateReleaseArtifacts(temp, packageJson.version);
   assert.equal(validated.checksumLine, `${digest}  ${installerName}`);
-  assert.match(releaseNotes('v2.4.1', validated.checksumLine), new RegExp(digest));
+  assert.match(releaseNotes('v3.0.0', validated.checksumLine), new RegExp(digest));
 
   await fs.writeFile(sidecar, `${'0'.repeat(64)}  ${installerName}`, 'ascii');
   await assert.rejects(validateReleaseArtifacts(temp, packageJson.version), /SHA-256/);

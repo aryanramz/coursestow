@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { loadAppConfig } from './config.mjs';
-import { findChromiumExecutable } from './browser.mjs';
+import { findCompatibleChromiumExecutable } from './browser.mjs';
 import { authenticateWithInstitutionAdapter, makeChromiumPageVisible } from './auth-flow.mjs';
 import { acquireSyncLock, describeActiveLock } from './sync-lock.mjs';
 import { clearAuthAttention } from './auth-attention.mjs';
@@ -12,7 +12,7 @@ import { clearAuthAttention } from './auth-attention.mjs';
 export async function runRefreshLogin({
   loadConfig = loadAppConfig,
   acquireLock = acquireSyncLock,
-  findBrowser = findChromiumExecutable,
+  findBrowser = findCompatibleChromiumExecutable,
   launchPersistentContext = (...args) => chromium.launchPersistentContext(...args),
   authenticate = authenticateWithInstitutionAdapter,
   makeVisible = makeChromiumPageVisible,
@@ -26,7 +26,7 @@ export async function runRefreshLogin({
   if (!lock.acquired) throw new Error(`Another CourseMirror operation is already running: ${describeActiveLock(lock)}.`);
 
   try {
-    const browser = findBrowser(config.browserExecutablePath);
+    const browser = await findBrowser(config.browserExecutablePath);
     log.log(`Opening ${browser.name} for manual Brightspace login refresh.`);
     log.log('Complete institutional sign-in and MFA in the visible browser. Credentials are not printed or logged.');
     const context = await launchPersistentContext(config.profileDir, {

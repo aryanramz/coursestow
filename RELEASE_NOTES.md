@@ -1,17 +1,26 @@
-# Unreleased — Windows distribution foundations
+# v3.0.0 — Windows release candidate (not yet published)
 
-- Added the Milestone 2C.1 per-user Windows installer build foundation, pinned to verified Inno Setup 7.1.0 x64 and producing a versioned setup executable plus SHA-256 sidecar.
-- Renamed the product to CourseMirror while retaining D2L Brightspace terminology for the external LMS integration.
-- Added safe compatibility for the prior private runtime root, credential target, scheduled-task namespace, and desktop mutex.
-- Separated immutable application files from per-user configuration, browser session, operational state, locks, and log storage under `%LOCALAPPDATA%\CourseMirror`.
-- Kept the Brightspace mirror user-selectable, with a per-user `Documents\CourseMirror` default when `outputDir` is blank.
-- Added idempotent migration for legacy repo-relative config, Chromium profile, global sync state, per-course sync state, and Drive publish state while retaining legacy copies for rollback.
-- Added a stable launcher/runtime path abstraction used by npm scripts, command wrappers, scheduled sync, login setup, sync, publish, and the environment doctor.
-- Removed first-run writes and dependency installation from runtime command wrappers so they can later run from `Program Files`.
-- Kept Google Drive publishing disabled for new users and removed the assumed Drive destination; publishing now requires an explicit enable choice and destination.
-- Added cross-platform runtime path/migration tests and CI coverage.
+CourseMirror 3.0.0 completes the reviewed Windows desktop, installer, setup, scheduling, authentication, update-checking, and packaging work. No `v3.0.0` tag or GitHub Release exists yet; final naming and clean-VM qualification remain separate gates.
 
-Installer lifecycle, signing, qualification, and public release automation remain intentionally deferred. See `docs/WINDOWS_DISTRIBUTION.md` for the completed foundation and remaining work.
+## User-facing changes since v2.4.1
+
+- Added a normal per-user Windows installer for Windows 10 22H2+ and Windows 11 x64. It needs no administrator elevation and bundles a private Node.js runtime, so end users do not need Node.js, npm, or Git.
+- Added the native CourseMirror control panel with Quick Sync, Full Sync, Open Mirror, Settings, Refresh Login, logs, status polling, sanitized diagnostics, and update notices.
+- Added shared first-run and Settings UI for the Brightspace URL, mirror folder, optional Google Drive publishing, optional supported automatic login, browser selection, and optional Windows scheduling.
+- Completed **Save & Sign In**: successful first-run settings launch the existing visible SSO/MFA flow, followed by exactly one initial Full Sync only after authentication succeeds.
+- Kept the persistent browser session private under `%LOCALAPPDATA%\CourseMirror\BrowserProfile`; MFA is never bypassed. Supported Stony Brook automatic login is opt-in and stores its password only in Windows Credential Manager.
+- Added official compatibility-tested support for Microsoft Edge, Google Chrome, and Brave. Vivaldi, Opera, Opera GX, and Chromium use best-effort discovery, and users can select another Chromium executable for an isolated Playwright compatibility probe.
+- Added missing-browser recovery with Retry, manual executable selection, automatic-detection reset, and a fixed trusted Microsoft Edge download link. CourseMirror never bundles or silently installs a browser.
+- Added explicit transactional import from a user-selected CourseMirror or supported pre-rename Brightspace Sync source checkout. It imports only compatible configuration, BrowserProfile session data, and allowlisted continuity state; mirrors, Drive copies, source, Git data, dependencies, and plaintext credentials are not copied.
+- Added optional current-user Task Scheduler integration with safe create/update/disable rollback and Quick/Full cadence selection.
+- Added installer upgrade, repair, downgrade blocking, active-operation preflight, scheduled-task reconciliation, and privacy-preserving uninstall behavior. Default uninstall preserves private data, credentials, mirror, and Drive output.
+- Added asynchronous public GitHub Releases update checking. It does not download or execute installers and sends no telemetry.
+- Added a tag-driven future release pipeline that verifies the versioned installer and SHA-256 sidecar before publication. The expected files are `CourseMirror-3.0.0-Setup.exe` and `CourseMirror-3.0.0-Setup.exe.sha256`.
+- Retained strict private-data/application separation, read-focused network protections, sanitized failure-only logs, and no analytics, telemetry, crash-reporting service, or browser extension.
+
+## Known release-candidate limitation
+
+The Windows binaries and installer are unsigned and may display **Unknown Publisher**. Users should keep Windows security protections enabled. Code signing and clean disposable-VM install/upgrade/repair/uninstall qualification remain later release gates.
 
 ---
 

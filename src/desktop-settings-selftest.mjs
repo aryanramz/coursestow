@@ -51,7 +51,8 @@ function request(baseUrl, mirrorDir, {
   authenticationRetryRequested = false,
   scheduleEnabled = false,
   intervalHours = 6,
-  fullIntervalDays = 7
+  fullIntervalDays = 7,
+  browserPath
 } = {}) {
   return {
     schemaVersion: 1,
@@ -60,6 +61,7 @@ function request(baseUrl, mirrorDir, {
     drive: { enabled: driveEnabled, destination: driveDestination },
     authentication: { automaticLoginEnabled, retryRequested: authenticationRetryRequested },
     schedule: { enabled: scheduleEnabled, intervalHours, fullIntervalDays },
+    ...(browserPath !== undefined ? { browser: { executablePath: browserPath } } : {}),
     ...(mirrorAction ? { mirrorAction } : {})
   };
 }
@@ -168,7 +170,7 @@ try {
   const basicRuntime = await makeRuntime(temp, 'Basic');
   const basicPaths = resolveRuntimePaths(basicRuntime);
   const initial = await getDesktopSettings({ runtime: basicRuntime });
-  assert.deepEqual(Object.keys(initial).sort(), ['authentication', 'baseUrl', 'configured', 'drive', 'maySuggestFirstRunMirror', 'mirrorDir', 'mirrorOverrideActive', 'schedule', 'schemaVersion']);
+  assert.deepEqual(Object.keys(initial).sort(), ['authentication', 'baseUrl', 'browser', 'configured', 'drive', 'mayImportLegacySetup', 'maySuggestFirstRunMirror', 'mirrorDir', 'mirrorOverrideActive', 'schedule', 'schemaVersion']);
   assert.deepEqual(Object.keys(initial.drive).sort(), ['destination', 'enabled']);
   assert.deepEqual(Object.keys(initial.authentication).sort(), ['automaticLoginEnabled', 'institution', 'supported']);
   assert.deepEqual(Object.keys(initial.schedule).sort(), ['enabled', 'fullIntervalDays', 'intervalHours']);
@@ -177,7 +179,44 @@ try {
   assert.equal(initial.baseUrl, '');
   assert.equal(initial.drive.enabled, false);
   assert.equal(initial.drive.destination, '');
+  assert.equal(initial.mayImportLegacySetup, true);
+  assert.equal(initial.browser.engine, 'chromium');
   assert.deepEqual(initial.authentication, { supported: false, institution: '', automaticLoginEnabled: false });
+
+  const manualBrowserPath = path.join(temp, 'Synthetic Browser', 'browser.exe');
+  await fs.mkdir(path.dirname(manualBrowserPath), { recursive: true });
+  await fs.writeFile(manualBrowserPath, 'synthetic executable');
+  const compatibleInspector = async executablePath => ({
+    engine: 'chromium',
+    available: true,
+    displayName: executablePath ? 'Custom Chromium browser' : 'Microsoft Edge',
+    executablePath: executablePath || path.join(temp, 'Synthetic Edge', 'msedge.exe'),
+    source: executablePath ? 'configured' : 'automatic',
+    configuredManually: Boolean(executablePath),
+    supportLevel: executablePath ? 'custom' : 'official',
+    validationStatus: 'compatible'
+  });
+  const manualBrowserSave = await saveDesktopSettings(request('https://example.test', initial.mirrorDir, {
+    browserPath: manualBrowserPath
+  }), { runtime: basicRuntime, browserInspector: compatibleInspector });
+  assert.equal(manualBrowserSave.ok, true, 'compatible manual browser path must save');
+  assert.equal((await rawConfig(basicRuntime)).browserExecutablePath, manualBrowserPath, 'manual browser path must round-trip through config');
+  const rejectedBrowser = await saveDesktopSettings(request('https://example.test', initial.mirrorDir, {
+    browserPath: path.join(temp, 'Not A Browser.exe')
+  }), {
+    runtime: basicRuntime,
+    browserInspector: async executablePath => ({
+      engine: 'chromium', available: false, displayName: 'Custom Chromium browser', executablePath,
+      source: 'configured', configuredManually: true, supportLevel: 'custom', validationStatus: 'incompatible'
+    })
+  });
+  assert.equal(errorCode(rejectedBrowser, 'browser-unavailable'), true, 'incompatible manual executable must be rejected');
+  assert.equal((await rawConfig(basicRuntime)).browserExecutablePath, manualBrowserPath, 'rejected browser must not alter config');
+  const automaticBrowserSave = await saveDesktopSettings(request('https://example.test', initial.mirrorDir, {
+    browserPath: ''
+  }), { runtime: basicRuntime, browserInspector: compatibleInspector });
+  assert.equal(automaticBrowserSave.ok, true, 'reset to validated automatic detection must save');
+  assert.equal((await rawConfig(basicRuntime)).browserExecutablePath, '', 'automatic detection reset must clear manual path');
   assert.deepEqual(initial.schedule, { enabled: false, intervalHours: 6, fullIntervalDays: 7 });
   assert.equal(initial.mirrorOverrideActive, false);
   assert.equal(initial.maySuggestFirstRunMirror, true, 'a genuinely fresh generated mirror may use the Windows known-folder suggestion');

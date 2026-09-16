@@ -33,6 +33,8 @@ namespace CourseMirror.ControlPanel
                 ProcessStartInfo refreshLoginStartInfo = backend.CreateStartInfo("refresh-login");
                 ProcessStartInfo scheduledStartInfo = backend.CreateStartInfo("scheduled");
                 ProcessStartInfo settingsSaveStartInfo = backend.CreateSettingsSaveStartInfo();
+                ProcessStartInfo browserProbeStartInfo = backend.CreateBrowserProbeStartInfo();
+                ProcessStartInfo sourceImportStartInfo = backend.CreateSourceImportStartInfo();
                 stage = "load initial settings";
                 DesktopSettings initialSettings = await backend.GetSettingsAsync();
                 if (initialSettings.configured)
@@ -73,6 +75,72 @@ namespace CourseMirror.ControlPanel
                         && firstRunDialog.LastFirstRun;
                     firstRunCancelDisabledSync = !firstRunForm.SyncButtonsEnabledForSelfTest;
                 }
+
+                BackendStatus successfulFirstRunStatus = CloneStatus(status);
+                successfulFirstRunStatus.configured = false;
+                successfulFirstRunStatus.baseUrlConfigured = false;
+                var successfulFirstRunBackend = new ScriptedBackendClient(successfulFirstRunStatus, new BackendProcessResult { ExitCode = 0 });
+                var successfulFirstRunDialog = new ScriptedSettingsDialogService(true, delegate
+                {
+                    successfulFirstRunStatus.configured = true;
+                    successfulFirstRunStatus.baseUrlConfigured = true;
+                });
+                using (var successfulFirstRunForm = new MainForm(successfulFirstRunBackend, MainForm.StatusRefreshIntervalMilliseconds, successfulFirstRunDialog))
+                {
+                    await successfulFirstRunForm.InitializeForSelfTestAsync();
+                }
+                bool firstRunSignInThenFullSync = successfulFirstRunBackend.RefreshLoginCalls == 1
+                    && successfulFirstRunBackend.SyncCalls == 1
+                    && successfulFirstRunBackend.Operations.Count == 2
+                    && successfulFirstRunBackend.Operations[0] == "refresh-login"
+                    && successfulFirstRunBackend.Operations[1] == "full";
+
+                BackendStatus failedSignInStatus = CloneStatus(status);
+                failedSignInStatus.configured = false;
+                failedSignInStatus.baseUrlConfigured = false;
+                var failedSignInBackend = new ScriptedBackendClient(failedSignInStatus, new BackendProcessResult { ExitCode = 0 });
+                failedSignInBackend.RefreshLoginResult = new BackendProcessResult { ExitCode = 1, StandardError = "Synthetic sign-in cancellation." };
+                var failedSignInDialog = new ScriptedSettingsDialogService(true, delegate
+                {
+                    failedSignInStatus.configured = true;
+                    failedSignInStatus.baseUrlConfigured = true;
+                });
+                using (var failedSignInForm = new MainForm(failedSignInBackend, MainForm.StatusRefreshIntervalMilliseconds, failedSignInDialog))
+                {
+                    await failedSignInForm.InitializeForSelfTestAsync();
+                }
+                bool failedSignInSkipsInitialFullSync = failedSignInBackend.RefreshLoginCalls == 1
+                    && failedSignInBackend.SyncCalls == 0
+                    && failedSignInStatus.configured;
+
+                BackendStatus failedInitialSyncStatus = CloneStatus(status);
+                failedInitialSyncStatus.configured = false;
+                failedInitialSyncStatus.baseUrlConfigured = false;
+                var failedInitialSyncBackend = new ScriptedBackendClient(failedInitialSyncStatus, new BackendProcessResult { ExitCode = 0 });
+                failedInitialSyncBackend.SyncResult = new BackendProcessResult { ExitCode = 1, StandardError = "Synthetic initial sync failure." };
+                var failedInitialSyncDialog = new ScriptedSettingsDialogService(true, delegate
+                {
+                    failedInitialSyncStatus.configured = true;
+                    failedInitialSyncStatus.baseUrlConfigured = true;
+                });
+                using (var failedInitialSyncForm = new MainForm(failedInitialSyncBackend, MainForm.StatusRefreshIntervalMilliseconds, failedInitialSyncDialog))
+                {
+                    await failedInitialSyncForm.InitializeForSelfTestAsync();
+                }
+                bool failedInitialFullSyncPreservesConfiguration = failedInitialSyncBackend.RefreshLoginCalls == 1
+                    && failedInitialSyncBackend.SyncCalls == 1
+                    && failedInitialSyncStatus.configured;
+
+                BackendStatus existingConfiguredStatus = CloneStatus(status);
+                var existingConfiguredBackend = new ScriptedBackendClient(existingConfiguredStatus, new BackendProcessResult { ExitCode = 0 });
+                var existingConfiguredDialog = new ScriptedSettingsDialogService(false);
+                using (var existingConfiguredForm = new MainForm(existingConfiguredBackend, MainForm.StatusRefreshIntervalMilliseconds, existingConfiguredDialog))
+                {
+                    await existingConfiguredForm.InitializeForSelfTestAsync();
+                }
+                bool configuredInstallSkipsFirstRun = existingConfiguredDialog.ShowCalls == 0
+                    && existingConfiguredBackend.RefreshLoginCalls == 0
+                    && existingConfiguredBackend.SyncCalls == 0;
 
                 var cancelBackend = new ScriptedBackendClient(status, new BackendProcessResult { ExitCode = 0 });
                 using (var settingsForm = new SetupSettingsForm(cancelBackend, currentSettings, false, new NullFolderPicker()))
@@ -157,6 +225,45 @@ namespace CourseMirror.ControlPanel
                         String.Equals(settingsForm.RequestForSelfTest().mirrorDir, overrideFirstRunSettings.mirrorDir, StringComparison.OrdinalIgnoreCase)
                         && !settingsForm.MirrorEditableForSelfTest;
                 }
+
+                string syntheticBrowserPath = Path.Combine(status.dataDir, "Synthetic Browser", "browser.exe");
+                bool manualBrowserRoundTrips;
+                bool automaticBrowserReset;
+                using (var settingsForm = new SetupSettingsForm(cancelBackend, currentSettings, false, new NullFolderPicker()))
+                {
+                    bool selected = await settingsForm.ChooseBrowserForSelfTestAsync(syntheticBrowserPath);
+                    SettingsSaveRequest selectedRequest = settingsForm.RequestForSelfTest();
+                    manualBrowserRoundTrips = selected
+                        && String.Equals(cancelBackend.LastBrowserProbePath, syntheticBrowserPath, StringComparison.OrdinalIgnoreCase)
+                        && !String.IsNullOrWhiteSpace(settingsForm.BrowserPathForSelfTest)
+                        && String.Equals(
+                            selectedRequest.browser.executablePath,
+                            settingsForm.BrowserPathForSelfTest,
+                            StringComparison.OrdinalIgnoreCase);
+                    await settingsForm.UseAutomaticBrowserForSelfTestAsync();
+                    automaticBrowserReset = String.IsNullOrWhiteSpace(settingsForm.RequestForSelfTest().browser.executablePath)
+                        && String.IsNullOrWhiteSpace(cancelBackend.LastBrowserProbePath);
+                }
+                DesktopSettings missingBrowserSettings = new DesktopSettings
+                {
+                    schemaVersion = 1,
+                    configured = false,
+                    baseUrl = String.Empty,
+                    mirrorDir = initialSettings.mirrorDir,
+                    mayImportLegacySetup = true,
+                    drive = new DesktopDriveSettings { enabled = false, destination = String.Empty },
+                    browser = new DesktopBrowserSettings { schemaVersion = 1, engine = "chromium", available = false, validationStatus = "not-detected" }
+                };
+                bool missingBrowserRecoveryVisible;
+                bool importOfferedOnlyOnFirstRun;
+                using (var settingsForm = new SetupSettingsForm(cancelBackend, missingBrowserSettings, true, new NullFolderPicker()))
+                {
+                    missingBrowserRecoveryVisible = settingsForm.BrowserStatusForSelfTest.Contains("No compatible Chromium browser")
+                        && SetupSettingsForm.EdgeDownloadUrl == "https://www.microsoft.com/edge/download";
+                    importOfferedOnlyOnFirstRun = settingsForm.ImportVisibleForSelfTest;
+                }
+                using (var settingsForm = new SetupSettingsForm(cancelBackend, missingBrowserSettings, false, new NullFolderPicker()))
+                    importOfferedOnlyOnFirstRun = importOfferedOnlyOnFirstRun && !settingsForm.ImportVisibleForSelfTest;
 
                 stage = "credential settings behavior";
                 const string syntheticUsername = "SyntheticStudent";
@@ -825,6 +932,12 @@ namespace CourseMirror.ControlPanel
                     settingsSaveProcessFileName = settingsSaveStartInfo.FileName,
                     settingsSaveProcessArguments = settingsSaveStartInfo.Arguments,
                     settingsSaveRedirectStandardInput = settingsSaveStartInfo.RedirectStandardInput,
+                    browserProbeProcessFileName = browserProbeStartInfo.FileName,
+                    browserProbeProcessArguments = browserProbeStartInfo.Arguments,
+                    browserProbeRedirectStandardInput = browserProbeStartInfo.RedirectStandardInput,
+                    sourceImportProcessFileName = sourceImportStartInfo.FileName,
+                    sourceImportProcessArguments = sourceImportStartInfo.Arguments,
+                    sourceImportRedirectStandardInput = sourceImportStartInfo.RedirectStandardInput,
                     useShellExecute = startInfo.UseShellExecute,
                     createNoWindow = startInfo.CreateNoWindow,
                     redirectStandardOutput = startInfo.RedirectStandardOutput,
@@ -849,11 +962,19 @@ namespace CourseMirror.ControlPanel
                         && !settingsSaveStartInfo.Arguments.Contains(settingsRequest.mirrorDir),
                     firstRunSetupTriggered = firstRunSetupTriggered,
                     firstRunCancelDisabledSync = firstRunCancelDisabledSync,
+                    firstRunSignInThenFullSync = firstRunSignInThenFullSync,
+                    failedSignInSkipsInitialFullSync = failedSignInSkipsInitialFullSync,
+                    failedInitialFullSyncPreservesConfiguration = failedInitialFullSyncPreservesConfiguration,
+                    configuredInstallSkipsFirstRun = configuredInstallSkipsFirstRun,
                     firstRunUsesKnownDocuments = firstRunUsesKnownDocuments,
                     firstRunScheduleDefaultsOff = firstRunScheduleDefaultsOff,
                     firstRunPreservesCustomMirror = firstRunPreservesCustomMirror,
                     firstRunPreservesMeaningfulDefault = firstRunPreservesMeaningfulDefault,
                     firstRunPreservesEnvironmentOverride = firstRunPreservesEnvironmentOverride,
+                    manualBrowserRoundTrips = manualBrowserRoundTrips,
+                    automaticBrowserReset = automaticBrowserReset,
+                    missingBrowserRecoveryVisible = missingBrowserRecoveryVisible,
+                    importOfferedOnlyOnFirstRun = importOfferedOnlyOnFirstRun,
                     settingsCancelSavesNothing = settingsCancelSavesNothing,
                     sharedSettingsFormSavesThroughBackend = sharedSettingsFormSavesThroughBackend,
                     environmentOverrideIsReadOnly = environmentOverrideIsReadOnly,
@@ -1060,6 +1181,15 @@ namespace CourseMirror.ControlPanel
             throw new InvalidOperationException("Delayed status test does not save settings.");
         }
 
+        public Task<DesktopBrowserSettings> GetBrowserAsync() { return Task.FromResult(CompatibleBrowser()); }
+        public Task<DesktopBrowserSettings> ProbeBrowserAsync(string executablePath) { return Task.FromResult(CompatibleBrowser()); }
+        public Task<SourceImportResponse> ImportSourceAsync(string sourceDir) { throw new NotSupportedException(); }
+
+        private static DesktopBrowserSettings CompatibleBrowser()
+        {
+            return new DesktopBrowserSettings { schemaVersion = 1, engine = "chromium", available = true, displayName = "Synthetic Chromium", validationStatus = "compatible" };
+        }
+
         private static DesktopSettings SettingsFromStatus(BackendStatus status)
         {
             return new DesktopSettings
@@ -1071,7 +1201,8 @@ namespace CourseMirror.ControlPanel
                 mirrorOverrideActive = false,
                 drive = new DesktopDriveSettings { enabled = false, destination = String.Empty },
                 authentication = new DesktopAuthenticationSettings { supported = false, institution = String.Empty, automaticLoginEnabled = false },
-                schedule = new DesktopScheduleSettings { enabled = false, intervalHours = 6, fullIntervalDays = 7 }
+                schedule = new DesktopScheduleSettings { enabled = false, intervalHours = 6, fullIntervalDays = 7 },
+                browser = CompatibleBrowser()
             };
         }
     }
@@ -1092,6 +1223,8 @@ namespace CourseMirror.ControlPanel
             _status = status;
             _result = result;
             _settingsSaveResponse = settingsSaveResponse;
+            BrowserAvailable = true;
+            Operations = new List<string>();
         }
 
         internal int SyncCalls { get; private set; }
@@ -1100,6 +1233,11 @@ namespace CourseMirror.ControlPanel
         internal int SaveCalls { get; private set; }
         internal SettingsSaveRequest LastSettingsRequest { get; private set; }
         internal Exception SaveException { get; set; }
+        internal bool BrowserAvailable { get; set; }
+        internal string LastBrowserProbePath { get; private set; }
+        internal BackendProcessResult SyncResult { get; set; }
+        internal BackendProcessResult RefreshLoginResult { get; set; }
+        internal List<string> Operations { get; private set; }
 
         public Task<BackendStatus> GetStatusAsync()
         {
@@ -1109,13 +1247,15 @@ namespace CourseMirror.ControlPanel
         public Task<BackendProcessResult> RunSyncAsync(string mode)
         {
             SyncCalls++;
-            return Task.FromResult(_result);
+            Operations.Add(mode);
+            return Task.FromResult(SyncResult ?? _result);
         }
 
         public Task<BackendProcessResult> RunRefreshLoginAsync()
         {
             RefreshLoginCalls++;
-            return Task.FromResult(_result);
+            Operations.Add("refresh-login");
+            return Task.FromResult(RefreshLoginResult ?? _result);
         }
 
         public Task<BackendProcessResult> RunScheduledAsync()
@@ -1135,8 +1275,32 @@ namespace CourseMirror.ControlPanel
                 mirrorOverrideActive = false,
                 drive = new DesktopDriveSettings { enabled = false, destination = String.Empty },
                 authentication = new DesktopAuthenticationSettings { supported = false, institution = String.Empty, automaticLoginEnabled = false },
-                schedule = new DesktopScheduleSettings { enabled = false, intervalHours = 6, fullIntervalDays = 7 }
+                schedule = new DesktopScheduleSettings { enabled = false, intervalHours = 6, fullIntervalDays = 7 },
+                browser = CompatibleBrowser(BrowserAvailable)
             });
+        }
+
+        public Task<DesktopBrowserSettings> GetBrowserAsync() { return Task.FromResult(CompatibleBrowser(BrowserAvailable)); }
+        public Task<DesktopBrowserSettings> ProbeBrowserAsync(string executablePath)
+        {
+            LastBrowserProbePath = executablePath;
+            return Task.FromResult(CompatibleBrowser(BrowserAvailable));
+        }
+        public Task<SourceImportResponse> ImportSourceAsync(string sourceDir)
+        {
+            return Task.FromResult(new SourceImportResponse { schemaVersion = 1, ok = true, imported = true });
+        }
+
+        private static DesktopBrowserSettings CompatibleBrowser(bool available)
+        {
+            return new DesktopBrowserSettings
+            {
+                schemaVersion = 1,
+                engine = "chromium",
+                available = available,
+                displayName = available ? "Synthetic Chromium" : String.Empty,
+                validationStatus = available ? "compatible" : "not-detected"
+            };
         }
 
         public Task<SettingsSaveResponse> SaveSettingsAsync(SettingsSaveRequest request)
@@ -1164,7 +1328,8 @@ namespace CourseMirror.ControlPanel
                     mirrorOverrideActive = false,
                     drive = request.drive,
                     authentication = request.authentication,
-                    schedule = request.schedule
+                    schedule = request.schedule,
+                    browser = request.browser ?? CompatibleBrowser(true)
                 }
             });
         }
@@ -1322,10 +1487,12 @@ namespace CourseMirror.ControlPanel
     internal sealed class ScriptedSettingsDialogService : ISettingsDialogService
     {
         private readonly bool _result;
+        private readonly Action _onShow;
 
-        internal ScriptedSettingsDialogService(bool result)
+        internal ScriptedSettingsDialogService(bool result, Action onShow = null)
         {
             _result = result;
+            _onShow = onShow;
         }
 
         internal int ShowCalls { get; private set; }
@@ -1335,6 +1502,7 @@ namespace CourseMirror.ControlPanel
         {
             ShowCalls++;
             LastFirstRun = firstRun;
+            if (_onShow != null) _onShow();
             return Task.FromResult(_result);
         }
     }

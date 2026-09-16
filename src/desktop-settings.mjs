@@ -9,6 +9,8 @@ import { normalizeBrightspaceBaseUrl } from './brightspace-url.mjs';
 import { institutionAdapterForBaseUrl } from './auth-adapters.mjs';
 import { normalizeScheduleConfig, validateScheduleRequest } from './schedule-config.mjs';
 import { clearAuthAttention } from './auth-attention.mjs';
+import { discoverChromiumBrowserCandidate, inspectChromiumBrowser } from './browser.mjs';
+import { installedRuntimeHasMeaningfulData } from './source-import.mjs';
 
 export const DESKTOP_SETTINGS_SCHEMA_VERSION = 1;
 
@@ -152,9 +154,10 @@ async function maySuggestFirstRunMirror({ config, paths, raw }, io) {
   }
 }
 
-async function safeSettings({ config, paths, raw }, io = fs) {
+async function safeSettings({ config, paths, raw }, io = fs, browserInspector = discoverChromiumBrowserCandidate) {
   const baseUrl = normalizeBrightspaceBaseUrl(config.baseUrl);
   const adapter = institutionAdapterForBaseUrl(baseUrl);
+  const browser = await browserInspector(config.browserExecutablePath || '');
   return {
     schemaVersion: DESKTOP_SETTINGS_SCHEMA_VERSION,
     configured: Boolean(baseUrl),
@@ -162,6 +165,8 @@ async function safeSettings({ config, paths, raw }, io = fs) {
     mirrorDir: config.outputDir,
     mirrorOverrideActive: Boolean(paths.mirrorDirOverride),
     maySuggestFirstRunMirror: await maySuggestFirstRunMirror({ config, paths, raw }, io),
+    mayImportLegacySetup: !(await installedRuntimeHasMeaningfulData({ config, paths, raw }, io)),
+    browser,
     authentication: {
       supported: Boolean(adapter),
       institution: adapter?.id || '',
@@ -175,11 +180,11 @@ async function safeSettings({ config, paths, raw }, io = fs) {
   };
 }
 
-export async function getDesktopSettings({ runtime = {} } = {}) {
+export async function getDesktopSettings({ runtime = {}, browserInspector = discoverChromiumBrowserCandidate } = {}) {
   return withUserConfigTransaction({
     mode: 'full',
     runtime,
-    execute: loaded => safeSettings(loaded)
+    execute: loaded => safeSettings(loaded, fs, browserInspector)
   });
 }
 
@@ -333,7 +338,7 @@ async function canonicalPathForField(value, field, io, errors) {
   }
 }
 
-async function validateRequest(request, loaded, io) {
+async function validateRequest(request, loaded, io, browserInspector) {
   const errors = [];
   if (request?.schemaVersion !== DESKTOP_SETTINGS_SCHEMA_VERSION) {
     errors.push(validationError('schemaVersion', 'unsupported-schema', 'The settings request version is not supported.'));
@@ -366,6 +371,27 @@ async function validateRequest(request, loaded, io) {
     ? { errors: [], schedule: normalizeScheduleConfig(loaded.config.schedule) }
     : validateScheduleRequest(request.schedule, validationError);
   errors.push(...requestedSchedule.errors);
+
+  const browserRequested = request?.browser != null;
+  const browserValue = browserRequested
+    ? String(request.browser?.executablePath || '').trim()
+    : String(loaded.raw.browserExecutablePath || '').trim();
+  if (browserValue && !path.isAbsolute(browserValue)) {
+    errors.push(validationError('browser.executablePath', 'absolute-path-required', 'Browser executable must be an absolute path.'));
+  }
+  let browser = null;
+  if (browserRequested && (!browserValue || path.isAbsolute(browserValue))) {
+    browser = await browserInspector(browserValue);
+    if (!browser?.available) {
+      errors.push(validationError(
+        'browser.executablePath',
+        'browser-unavailable',
+        browserValue
+          ? 'The selected file is not a compatible Chromium browser.'
+          : 'No compatible Chromium browser was found. Retry detection, choose a browser executable, or install Microsoft Edge.'
+      ));
+    }
+  }
 
   const [appRoot, dataDir, existingMirror] = await Promise.all([
     canonicalFilesystemPath(loaded.paths.appRoot, io),
@@ -411,6 +437,9 @@ async function validateRequest(request, loaded, io) {
     automaticLoginEnabled,
     authenticationRetryRequested: request?.authentication?.retryRequested === true,
     schedule: requestedSchedule.schedule,
+    browserRequested,
+    browserExecutablePath: browserRequested ? browserValue : loaded.raw.browserExecutablePath || '',
+    browser,
     appRoot: appRoot.physicalPath,
     dataDir: dataDir.physicalPath
   };
@@ -425,7 +454,13 @@ function settingsFailure(code, message, field = 'mirrorDir', recovery = null) {
   };
 }
 
-export async function saveDesktopSettings(request, { runtime = {}, fileSystem = {}, forceCopy = false, writeConfig } = {}) {
+export async function saveDesktopSettings(request, {
+  runtime = {},
+  fileSystem = {},
+  forceCopy = false,
+  writeConfig,
+  browserInspector = inspectChromiumBrowser
+} = {}) {
   const io = { ...fs, ...fileSystem };
   const paths = resolveRuntimePaths(runtime);
   const syncLock = await acquireSyncLock(paths.lockDir, { mode: 'settings' });
@@ -438,7 +473,7 @@ export async function saveDesktopSettings(request, { runtime = {}, fileSystem = 
       runtime,
       ...(writeConfig ? { writeConfig } : {}),
       async execute(loaded) {
-        const normalized = await validateRequest(request, loaded, io);
+        const normalized = await validateRequest(request, loaded, io, browserInspector);
         if (normalized.errors.length) {
           return { schemaVersion: DESKTOP_SETTINGS_SCHEMA_VERSION, ok: false, errors: normalized.errors };
         }
@@ -497,6 +532,7 @@ export async function saveDesktopSettings(request, { runtime = {}, fileSystem = 
           configVersion: loaded.raw.configVersion,
           baseUrl: normalized.baseUrl,
           outputDir: persistedMirror,
+          browserExecutablePath: normalized.browserExecutablePath,
           drivePublish: {
             ...(loaded.raw.drivePublish || {}),
             enabled: normalized.driveEnabled,
@@ -539,6 +575,7 @@ export async function saveDesktopSettings(request, { runtime = {}, fileSystem = 
           ...loaded.config,
           baseUrl: normalized.baseUrl,
           outputDir: loaded.paths.mirrorDirOverride ? loaded.config.outputDir : normalized.mirrorDir,
+          browserExecutablePath: normalized.browserExecutablePath,
           drivePublish: {
             ...loaded.config.drivePublish,
             enabled: normalized.driveEnabled,
@@ -553,7 +590,11 @@ export async function saveDesktopSettings(request, { runtime = {}, fileSystem = 
         return {
           schemaVersion: DESKTOP_SETTINGS_SCHEMA_VERSION,
           ok: true,
-          settings: await safeSettings({ config: committedConfig, paths: loaded.paths, raw: next }, io),
+          settings: await safeSettings(
+            { config: committedConfig, paths: loaded.paths, raw: next },
+            io,
+            normalized.browserRequested ? browserInspector : discoverChromiumBrowserCandidate
+          ),
           mirrorMoved: movement.moved
         };
       }

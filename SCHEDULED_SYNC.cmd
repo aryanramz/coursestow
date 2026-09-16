@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo CourseMirror v2.4.1 - SCHEDULED DAILY RUN
+echo CourseMirror - SCHEDULED DAILY RUN
 where node >nul 2>nul
 if errorlevel 1 (
   echo.

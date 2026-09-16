@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageMetadata = JSON.parse(await fs.readFile(path.join(ROOT, 'package.json'), 'utf8'));
-if (packageMetadata.name !== 'coursemirror' || packageMetadata.version !== '2.4.1') {
-  throw new Error('Package identity must remain CourseMirror 2.4.1 during the product rename.');
+if (packageMetadata.name !== 'coursemirror' || packageMetadata.version !== '3.0.0') {
+  throw new Error('Package identity must be CourseMirror 3.0.0 for Windows v3 finalization.');
 }
 if (packageMetadata.repository?.url !== 'https://github.com/aryanramz/coursemirror.git') {
   throw new Error('Package repository metadata must use the canonical CourseMirror repository.');

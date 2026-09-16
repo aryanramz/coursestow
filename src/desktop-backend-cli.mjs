@@ -1,6 +1,8 @@
 import process from 'node:process';
 import { getDesktopStatus } from './desktop-backend.mjs';
 import { getDesktopSettings, saveDesktopSettings } from './desktop-settings.mjs';
+import { getDesktopBrowser, probeDesktopBrowser } from './desktop-browser.mjs';
+import { importSourceCheckout } from './source-import.mjs';
 
 const [command = '', ...options] = process.argv.slice(2);
 const JSON_OPTION = '--json';
@@ -20,7 +22,7 @@ async function readJsonRequest() {
 }
 
 function usage() {
-  console.error('Usage: node src/desktop-backend-cli.mjs <status --json|settings --json|settings save --json>');
+  console.error('Usage: node src/desktop-backend-cli.mjs <status --json|settings --json|settings save --json|settings import --json|browser --json|browser probe --json>');
 }
 
 try {
@@ -30,6 +32,12 @@ try {
     console.log(JSON.stringify(await getDesktopSettings()));
   } else if (command === 'settings' && options.length === 2 && options[0] === 'save' && options[1] === JSON_OPTION) {
     console.log(JSON.stringify(await saveDesktopSettings(await readJsonRequest())));
+  } else if (command === 'settings' && options.length === 2 && options[0] === 'import' && options[1] === JSON_OPTION) {
+    console.log(JSON.stringify(await importSourceCheckout(await readJsonRequest())));
+  } else if (command === 'browser' && options.length === 1 && options[0] === JSON_OPTION) {
+    console.log(JSON.stringify(await getDesktopBrowser()));
+  } else if (command === 'browser' && options.length === 2 && options[0] === 'probe' && options[1] === JSON_OPTION) {
+    console.log(JSON.stringify(await probeDesktopBrowser(await readJsonRequest())));
   } else {
     usage();
     process.exitCode = 2;

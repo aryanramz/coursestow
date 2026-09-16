@@ -51,6 +51,12 @@ jobs:
       - name: Desktop settings contract and mirror relocation self-test
         run: npm run desktop-settings-selftest
 
+      - name: Chromium browser discovery and compatibility self-test
+        run: npm run browser-selftest
+
+      - name: Explicit source-checkout import self-test
+        run: npm run source-import-selftest
+
       - name: Institution authentication security self-test
         run: npm run auth-selftest
 
@@ -149,6 +155,12 @@ jobs:
 
       - name: Desktop settings contract and mirror relocation self-test
         run: npm run desktop-settings-selftest
+
+      - name: Chromium browser discovery and compatibility self-test
+        run: npm run browser-selftest
+
+      - name: Explicit source-checkout import self-test
+        run: npm run source-import-selftest
 
       - name: Institution authentication security self-test
         run: npm run auth-selftest

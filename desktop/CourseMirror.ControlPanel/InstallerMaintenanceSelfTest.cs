@@ -185,13 +185,19 @@ namespace CourseMirror.ControlPanel
                 mirrorDir = "C:\\SyntheticMirror",
                 drive = new DesktopDriveSettings { enabled = false, destination = String.Empty },
                 authentication = new DesktopAuthenticationSettings(),
-                schedule = new DesktopScheduleSettings { enabled = scheduleEnabled, intervalHours = intervalHours, fullIntervalDays = 7 }
+                schedule = new DesktopScheduleSettings { enabled = scheduleEnabled, intervalHours = intervalHours, fullIntervalDays = 7 },
+                browser = CompatibleBrowser()
             };
         }
+
+        private static DesktopBrowserSettings CompatibleBrowser() { return new DesktopBrowserSettings { schemaVersion = 1, engine = "chromium", available = true, displayName = "Synthetic Chromium", validationStatus = "compatible" }; }
 
         public Task<BackendStatus> GetStatusAsync() { return Task.FromResult(new BackendStatus { schemaVersion = 1 }); }
         public Task<DesktopSettings> GetSettingsAsync() { return Task.FromResult(_settings); }
         public Task<SettingsSaveResponse> SaveSettingsAsync(SettingsSaveRequest request) { throw new NotSupportedException(); }
+        public Task<DesktopBrowserSettings> GetBrowserAsync() { return Task.FromResult(CompatibleBrowser()); }
+        public Task<DesktopBrowserSettings> ProbeBrowserAsync(string executablePath) { return Task.FromResult(CompatibleBrowser()); }
+        public Task<SourceImportResponse> ImportSourceAsync(string sourceDir) { throw new NotSupportedException(); }
         public Task<BackendProcessResult> RunSyncAsync(string mode) { throw new NotSupportedException(); }
         public Task<BackendProcessResult> RunRefreshLoginAsync() { throw new NotSupportedException(); }
         public Task<BackendProcessResult> RunScheduledAsync() { throw new NotSupportedException(); }

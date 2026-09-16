@@ -15,13 +15,19 @@ CourseMirror operates inside an authenticated student session. Treat local brows
 
 ## Authentication model
 
-The crawler reuses a dedicated persistent Chromium profile. Supported Windows auto-detection covers Brave, Google Chrome, and Microsoft Edge; another compatible Chromium executable can be configured manually.
+The crawler reuses a dedicated persistent Chromium profile. Microsoft Edge, Google Chrome, and Brave are the officially tested Windows browser families. Vivaldi, Opera, Opera GX, and Chromium use best-effort fixed-location discovery; another compatible Chromium executable can be selected manually.
+
+Every user-selected executable is validated through Playwright's Chromium engine with a bounded headless `data:`-page probe. The probe uses a unique temporary profile, never the authenticated BrowserProfile, contacts no Brightspace site, closes the browser, and removes its temporary data. CourseMirror does not broadly scan the filesystem, bundle a browser, download a Playwright browser, install extensions, or install a browser automatically.
 
 Passwords are not required in `config.json` or environment variables. Browser password-manager assistance is optional and best-effort; normal SSO/MFA remains the supported fallback.
 
 CourseMirror does not export Playwright `storageState` to a separate plaintext JSON file. Session persistence stays inside the dedicated Chromium profile at `%LOCALAPPDATA%\CourseMirror\BrowserProfile`. If the legacy `_brightspace-auth-state.json` file from v2.4.0 exists, the crawler removes it automatically. The browser profile itself remains sensitive and should be protected like any authenticated browser profile.
 
 Configuration, session data, runtime state, locks, and the reserved log location are outside the application directory under `%LOCALAPPDATA%\CourseMirror`. The mirror remains in a location selected by the user. Product-name and repo-relative migrations copy rather than delete legacy private data so rollback remains possible. If both old and new product runtime roots contain meaningful data, CourseMirror stops for manual review instead of merging them. Users should remove a legacy copy manually only after they are satisfied with the migration.
+
+The first-run source-checkout importer runs only after the user explicitly selects a directory and only when the installed runtime has no meaningful configured data. It rejects reparse-point sources, stages data before promotion, rolls back failed promotion, and leaves the source untouched. Only compatible config, BrowserProfile, and allowlisted continuity state are eligible; mirrors, Drive output, source code, Git metadata, dependencies, arbitrary files, logs, and plaintext credential fields are excluded.
+
+CourseMirror has no telemetry, analytics, crash-reporting service, elevation helper, Windows service, or force-kill path. Update checks are unauthenticated requests to the public GitHub Releases endpoint and persist only allowlisted version/cache metadata.
 
 ## Read-focused write protection
 
@@ -55,10 +61,13 @@ GitHub Actions performs both the current-tree security check and a full-history 
 - CI and setup use `npm ci` for reproducible installs.
 - Runtime commands never install dependencies or create configuration beside the application files.
 - `npm run runtime-paths-selftest` verifies read-only-capable application/runtime separation, legacy migration, idempotency, and Drive opt-in defaults.
-- Linux CI runs syntax and functional/security self-tests on Node.js 20 and 22.
+- Linux CI runs syntax and functional/security self-tests on Node.js 20, 22, and the distributed Node.js 24.20.0 runtime.
 - A `windows-latest` CI job runs the environment doctor and launches an installed Chromium browser through Playwright using a temporary persistent profile.
+- Windows packaging tests verify version 3.0.0 across both EXEs, the portable manifest, packaged package metadata, installer ProductVersion, installer filename, and SHA-256 sidecar.
 
 The Windows browser smoke test validates packaging/browser compatibility on a clean hosted Windows environment. It does not replace real testing against every institution's Brightspace and SSO deployment.
+
+The 3.0.0 release-candidate installer is unsigned and may display **Unknown Publisher**. Do not disable Defender, SmartScreen, or other Windows security controls. Code signing and clean disposable-VM qualification remain release gates.
 
 ## Reporting security issues
 

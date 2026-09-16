@@ -207,6 +207,17 @@ try {
     TEMP: browserTempDir,
     TMP: browserTempDir
   };
+  // Native Windows components may consult or create Known Folder state even
+  // when CourseMirror's own data directories are explicitly redirected. Keep
+  // the real Windows profile environment for native EXEs and installed
+  // browsers, while retaining the sanitized PATH and test-owned app data.
+  const windowsHostEnv = {
+    ...process.env,
+    PATH: isolatedSystemPath,
+    COURSEMIRROR_DATA_DIR: dataDir,
+    COURSEMIRROR_MIRROR_DIR: mirrorDir,
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  };
   const expectedWindowsVersion = `${sourcePackage.version}.0`;
   for (const [label, binary] of [
     ['packaged control-panel version probe', controlPanel],
@@ -214,20 +225,14 @@ try {
   ]) {
     const versions = await readManagedBinaryVersions(windowsPowerShell, binary, {
       cwd: unrelatedCwd,
-      env: isolatedEnv,
+      env: windowsHostEnv,
       label
     });
     assert.equal(normalizeFourPartVersion(versions.assemblyVersion, `${label} assembly version`), expectedWindowsVersion);
     assert.equal(normalizeFourPartVersion(versions.fileVersion, `${label} file version`), expectedWindowsVersion);
     assert.equal(normalizeFourPartVersion(versions.productVersion, `${label} product version`), expectedWindowsVersion);
   }
-  const browserEnv = {
-    ...process.env,
-    PATH: isolatedSystemPath,
-    COURSEMIRROR_DATA_DIR: dataDir,
-    COURSEMIRROR_MIRROR_DIR: mirrorDir,
-    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-  };
+  const browserEnv = windowsHostEnv;
 
   assert.equal(browserEnv.PATH, isolatedSystemPath);
   assert.equal(browserEnv.USERPROFILE, process.env.USERPROFILE);
@@ -240,7 +245,7 @@ try {
 
   const pathNode = await run(systemComSpec, ['/d', '/s', '/c', 'node --version'], {
     cwd: unrelatedCwd,
-    env: isolatedEnv,
+    env: windowsHostEnv,
     label: 'PATH isolation probe'
   });
   assert.notEqual(pathNode.code, 0, 'ordinary node must be unavailable through PATH during the portable test');
@@ -285,7 +290,7 @@ try {
   const credentialHelperSelfTestFile = path.join(temp, 'credential-helper-self-test.json');
   const credentialHelperSelfTest = await run(credentialHelper, ['--self-test', credentialHelperSelfTestFile], {
     cwd: unrelatedCwd,
-    env: isolatedEnv,
+    env: windowsHostEnv,
     label: 'packaged Windows credential-helper smoke test'
   });
   assert.equal(credentialHelperSelfTest.code, 0, `${credentialHelperSelfTest.stdout}\n${credentialHelperSelfTest.stderr}`);
@@ -306,7 +311,7 @@ try {
   const credentialTransport = await run(privateNode, ['--input-type=module', '-e', credentialTransportProbe], {
     cwd: unrelatedCwd,
     env: {
-      ...isolatedEnv,
+      ...windowsHostEnv,
       COURSEMIRROR_CREDENTIAL_CLIENT: path.join(appRoot, 'src', 'credential-helper-client.mjs'),
       COURSEMIRROR_AUTH_ADAPTER: path.join(appRoot, 'src', 'auth-adapters.mjs'),
       COURSEMIRROR_PACKAGED_APP: appRoot
@@ -324,7 +329,7 @@ try {
   await fs.writeFile(doctorWrapper, `@echo off\r\ncall "${launcher}" doctor\r\nexit /b %ERRORLEVEL%\r\n`, 'utf8');
   const doctor = await run(systemComSpec, ['/d', '/c', doctorWrapper], {
     cwd: unrelatedCwd,
-    env: isolatedEnv,
+    env: windowsHostEnv,
     label: 'packaged doctor launcher'
   });
   assert.equal(doctor.code, 0, `${doctor.stdout}\n${doctor.stderr}`);
@@ -337,7 +342,7 @@ try {
   const updateCheckSelfTestFile = path.join(temp, 'update-check-self-test.json');
   const updateCheckSelfTest = await run(controlPanel, ['--update-check-self-test', updateCheckSelfTestFile], {
     cwd: unrelatedCwd,
-    env: isolatedEnv,
+    env: windowsHostEnv,
     label: 'packaged Windows update-check smoke test'
   });
   let updateCheckFailure = '';
@@ -354,7 +359,7 @@ try {
   console.log('Packaged Windows update checker: PASS (private runtime data, no live API calls)');
 
   const controlPanelSelfTestFile = path.join(temp, 'control-panel-self-test.json');
-  const controlPanelEnv = { ...isolatedEnv };
+  const controlPanelEnv = { ...windowsHostEnv };
   delete controlPanelEnv.COURSEMIRROR_DEV_BUNDLE_ROOT;
   const controlPanelSelfTest = await run(controlPanel, ['--self-test', controlPanelSelfTestFile], {
     cwd: unrelatedCwd,
@@ -382,6 +387,8 @@ try {
   assert.equal(await canonicalWindowsPath(controlPanelResult.refreshLoginProcessFileName), await canonicalWindowsPath(privateNode));
   assert.equal(await canonicalWindowsPath(controlPanelResult.scheduledProcessFileName), await canonicalWindowsPath(privateNode));
   assert.equal(await canonicalWindowsPath(controlPanelResult.settingsSaveProcessFileName), await canonicalWindowsPath(privateNode));
+  assert.equal(await canonicalWindowsPath(controlPanelResult.browserProbeProcessFileName), await canonicalWindowsPath(privateNode));
+  assert.equal(await canonicalWindowsPath(controlPanelResult.sourceImportProcessFileName), await canonicalWindowsPath(privateNode));
   assert.equal(await canonicalWindowsPath(controlPanelResult.launcherScript), await canonicalWindowsPath(packagedLauncherModule));
   assert.equal(await canonicalWindowsPath(controlPanelResult.workingDirectory), await canonicalWindowsPath(appRoot));
   assert.equal(controlPanelResult.processArguments, `"${controlPanelResult.launcherScript}" status --json`);
@@ -391,6 +398,10 @@ try {
   assert.equal(controlPanelResult.scheduledProcessArguments, `"${controlPanelResult.launcherScript}" scheduled`);
   assert.equal(controlPanelResult.settingsSaveProcessArguments, `"${controlPanelResult.launcherScript}" settings save --json`);
   assert.equal(controlPanelResult.settingsSaveRedirectStandardInput, true, 'settings save must send its payload through stdin');
+  assert.equal(controlPanelResult.browserProbeProcessArguments, `"${controlPanelResult.launcherScript}" browser probe --json`);
+  assert.equal(controlPanelResult.browserProbeRedirectStandardInput, true, 'manual browser path must be sent through stdin');
+  assert.equal(controlPanelResult.sourceImportProcessArguments, `"${controlPanelResult.launcherScript}" settings import --json`);
+  assert.equal(controlPanelResult.sourceImportRedirectStandardInput, true, 'selected import source must be sent through stdin');
   assert.equal(controlPanelResult.useShellExecute, false);
   assert.equal(controlPanelResult.createNoWindow, true);
   assert.equal(controlPanelResult.redirectStandardOutput, true);
@@ -414,11 +425,19 @@ try {
   assert.equal(controlPanelResult.settingsPayloadAbsentFromArguments, true);
   assert.equal(controlPanelResult.firstRunSetupTriggered, true, 'unconfigured startup must invoke the shared first-run settings flow');
   assert.equal(controlPanelResult.firstRunCancelDisabledSync, true, 'cancelling first-run setup must leave sync disabled');
+  assert.equal(controlPanelResult.firstRunSignInThenFullSync, true, 'successful first-run save must refresh login before exactly one Full Sync');
+  assert.equal(controlPanelResult.failedSignInSkipsInitialFullSync, true, 'failed first-run sign-in must not start Full Sync');
+  assert.equal(controlPanelResult.failedInitialFullSyncPreservesConfiguration, true, 'initial Full Sync failure must preserve valid configuration');
+  assert.equal(controlPanelResult.configuredInstallSkipsFirstRun, true, 'configured or preserved installs must not rerun first-run setup');
   assert.equal(controlPanelResult.firstRunUsesKnownDocuments, true, 'fresh setup must use the Windows Documents known folder default');
   assert.equal(controlPanelResult.firstRunScheduleDefaultsOff, true, 'fresh setup must leave automatic sync off by default');
   assert.equal(controlPanelResult.firstRunPreservesCustomMirror, true, 'first-run URL repair must preserve an existing custom mirror');
   assert.equal(controlPanelResult.firstRunPreservesMeaningfulDefault, true, 'first-run URL repair must preserve a meaningful generated mirror');
   assert.equal(controlPanelResult.firstRunPreservesEnvironmentOverride, true, 'first-run setup must preserve an environment-controlled mirror');
+  assert.equal(controlPanelResult.manualBrowserRoundTrips, true, 'manual browser path must round-trip through the settings request');
+  assert.equal(controlPanelResult.automaticBrowserReset, true, 'reset-to-automatic must clear the manual browser path');
+  assert.equal(controlPanelResult.missingBrowserRecoveryVisible, true, 'missing browser must expose recovery choices and the fixed Edge URL');
+  assert.equal(controlPanelResult.importOfferedOnlyOnFirstRun, true, 'source import must be offered only during eligible first-run setup');
   assert.equal(controlPanelResult.settingsCancelSavesNothing, true, 'cancelling Settings must not call the save bridge');
   assert.equal(controlPanelResult.sharedSettingsFormSavesThroughBackend, true, 'the shared setup/settings form must save only through the backend client');
   assert.equal(controlPanelResult.environmentOverrideIsReadOnly, true, 'an environment-controlled mirror must not appear editable in Settings');
@@ -554,7 +573,11 @@ try {
   });
   assert.equal(browserLaunch.code, 0, `${browserLaunch.stdout}\n${browserLaunch.stderr}`);
   const browserResult = JSON.parse(browserLaunch.stdout.trim().split(/\r?\n/).at(-1));
-  assert.equal(['Microsoft Edge', 'Google Chrome', 'Brave'].includes(browserResult.browserName), true, `unsupported browser detected: ${browserResult.browserName}`);
+  assert.equal(
+    ['Microsoft Edge', 'Google Chrome', 'Brave', 'Vivaldi', 'Opera', 'Opera GX', 'Chromium'].includes(browserResult.browserName),
+    true,
+    `unsupported browser detected: ${browserResult.browserName}`
+  );
   assert.equal(await canonicalWindowsPath(browserResult.nodeExecutable), await canonicalWindowsPath(privateNode), 'browser probe must run with packaged private Node');
   assert.equal(await canonicalWindowsPath(browserResult.playwrightModule), await canonicalWindowsPath(packagedPlaywrightModule), 'browser probe must load packaged Playwright');
   assert.equal(await canonicalWindowsPath(browserResult.profileDir), await canonicalWindowsPath(browserProfileDir), 'browser must use the explicit test-owned profile');

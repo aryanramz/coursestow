@@ -32,7 +32,8 @@ Typical use cases include:
 - Persistent browser-session reuse with normal SSO/MFA when required
 - No standalone plaintext cookie/storage-state export
 - Post-login network write guard for state-changing request methods and suspicious form/action POSTs
-- Automatic detection of Brave, Google Chrome, or Microsoft Edge on Windows
+- Automatic compatibility-tested detection of Microsoft Edge, Google Chrome, and Brave, with best-effort Vivaldi, Opera, Opera GX, and Chromium support
+- Manual selection and isolated compatibility probing for other Chromium-family executables
 - Locked npm dependency graph for reproducible installs
 - Dynamic course discovery
 - Quick and Full synchronization modes
@@ -104,15 +105,33 @@ Sync complete.
 
 ## Requirements
 
-- Windows 10 or 11
-- Node.js 20+
-- Brave, Google Chrome, Microsoft Edge, or another compatible Chromium executable configured manually
+- Windows 10 version 22H2 (build 19045) or later, or Windows 11, on x64 hardware
+- .NET Framework 4.8 or later
+- Microsoft Edge, Google Chrome, Brave, or another compatible Chromium-family browser
 - Access to a Brightspace environment through a normal student account
 - Optional: Google Drive for desktop if using Drive publishing
 
-CourseMirror is currently packaged and tested as a **Windows desktop application**. macOS, Linux, iOS, iPadOS, and Android are not supported targets in this release.
+The Windows installer includes its own private Node.js runtime, so installed users do not need Node.js, npm, Git, or administrator access. Browser binaries are intentionally not bundled. Source-checkout development still requires Node.js 20 or later.
+
+CourseMirror is currently packaged and tested as a **Windows desktop application**. macOS, Linux, iOS, iPadOS, Android, ARM64, and Firefox are not supported targets in this release candidate.
+
+## Windows 3.0 release candidate
+
+The reviewed Windows build installs per-user to `%LOCALAPPDATA%\Programs\CourseMirror` and keeps configuration, the authenticated browser profile, state, and logs separately under `%LOCALAPPDATA%\CourseMirror`. The school mirror remains user-selectable, and Google Drive publishing remains a separate opt-in filesystem destination.
+
+On a fresh install, the control panel opens setup automatically. **Save & Sign In** safely persists settings, opens the existing visible SSO/MFA flow, and starts one initial Full Sync only after authentication succeeds. Settings can retry browser detection, choose and validate a Chromium executable, return to automatic detection, or open Microsoft's fixed Edge download page when no compatible browser is present. Microsoft Edge, Google Chrome, and Brave are officially tested; Vivaldi, Opera, Opera GX, and Chromium are best-effort compatible.
+
+First run can explicitly import supported configuration, BrowserProfile session data, and continuity state from a user-selected CourseMirror or pre-rename Brightspace Sync source checkout. It never scans the disk, moves the school mirror, copies Drive output, modifies the old checkout, or imports source code, Git data, dependencies, logs, or plaintext credentials.
+
+Automatic scheduling is optional. Update checking uses public GitHub Releases metadata, downloads or installs nothing, and has no telemetry. Default uninstall removes the application and its exact scheduled task while preserving private data, credentials, the school mirror, and Drive output unless the user explicitly selects private-data removal.
+
+The 3.0.0 installer remains unsigned during release-candidate review and may appear as **Unknown Publisher**. Do not disable Defender or SmartScreen; final clean-VM qualification and public release are separate work.
 
 ## Quick start
+
+For the Windows release candidate, run `CourseMirror-3.0.0-Setup.exe`, then launch CourseMirror from the Start Menu and complete the guided first-run flow. The installer is per-user and requires no elevation.
+
+For source-checkout development:
 
 1. Clone the repository and install the locked dependencies:
 
@@ -344,7 +363,7 @@ npm run doctor
 npm run windows-browser-smoke
 ```
 
-GitHub Actions runs the functional/security checks on Node.js 20 and 22, performs a full-history privacy scan, and runs a clean `windows-latest` smoke job that detects an installed Chromium browser and launches it through Playwright with a temporary persistent profile.
+GitHub Actions runs the functional/security checks on Node.js 20, 22, and the distributed Node.js 24.20.0 runtime, performs a full-history privacy scan, and runs a clean `windows-latest` smoke job that detects an installed Chromium browser and launches it through Playwright with a temporary persistent profile.
 
 ## Scope and compatibility
 
@@ -357,6 +376,8 @@ A green Windows smoke test proves the packaged Node/Playwright/browser path work
 ## Release
 
 Latest stable release: **[v2.4.1](https://github.com/aryanramz/coursemirror/releases/tag/v2.4.1)**
+
+Current reviewed release-candidate source version: **3.0.0**. Version 3.0.0 has not been tagged or publicly released.
 
 ## License
 

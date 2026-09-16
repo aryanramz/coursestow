@@ -12,11 +12,12 @@ const COMMANDS = {
   'refresh-login': { entry: 'src/refresh-login.mjs', args: [] },
   doctor: { entry: 'src/doctor.mjs', args: [] },
   status: { entry: 'src/desktop-backend-cli.mjs', args: ['status'] },
-  settings: { entry: 'src/desktop-backend-cli.mjs', args: ['settings'] }
+  settings: { entry: 'src/desktop-backend-cli.mjs', args: ['settings'] },
+  browser: { entry: 'src/desktop-backend-cli.mjs', args: ['browser'] }
 };
 
 function usage() {
-  console.log('Usage: node src/launcher.mjs <quick|full|publish|scheduled|setup-login|refresh-login|doctor|status|settings> [arguments]');
+  console.log('Usage: node src/launcher.mjs <quick|full|publish|scheduled|setup-login|refresh-login|doctor|status|settings|browser> [arguments]');
 }
 
 const [command = '', ...forwarded] = process.argv.slice(2);

@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo CourseMirror v2.4.1 - PUBLISH TO GOOGLE DRIVE
+echo CourseMirror - PUBLISH TO GOOGLE DRIVE
 where node >nul 2>nul
 if errorlevel 1 (
   echo.

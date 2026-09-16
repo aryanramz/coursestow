@@ -1,12 +1,12 @@
 import { spawn } from 'node:child_process';
 import { loadAppConfig } from './config.mjs';
-import { findChromiumExecutable } from './browser.mjs';
+import { findCompatibleChromiumExecutable } from './browser.mjs';
 
 const { config } = await loadAppConfig();
 const { profileDir, baseUrl } = config;
 if (!baseUrl) throw new Error(`baseUrl is missing from ${config.configFile}.`);
 
-const browser = findChromiumExecutable(config.browserExecutablePath);
+const browser = await findCompatibleChromiumExecutable(config.browserExecutablePath);
 console.log(`Opening the dedicated CourseMirror profile in ${browser.name}.`);
 console.log(`Browser: ${browser.path}`);
 console.log(`Profile: ${profileDir}`);

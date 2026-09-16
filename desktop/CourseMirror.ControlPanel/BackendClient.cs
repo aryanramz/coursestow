@@ -90,6 +90,19 @@ namespace CourseMirror.ControlPanel
         public int fullIntervalDays { get; set; }
     }
 
+    internal sealed class DesktopBrowserSettings
+    {
+        public int schemaVersion { get; set; }
+        public string engine { get; set; }
+        public bool available { get; set; }
+        public string displayName { get; set; }
+        public string executablePath { get; set; }
+        public string source { get; set; }
+        public bool configuredManually { get; set; }
+        public string supportLevel { get; set; }
+        public string validationStatus { get; set; }
+    }
+
     internal sealed class DesktopSettings
     {
         public int schemaVersion { get; set; }
@@ -98,6 +111,8 @@ namespace CourseMirror.ControlPanel
         public string mirrorDir { get; set; }
         public bool mirrorOverrideActive { get; set; }
         public bool maySuggestFirstRunMirror { get; set; }
+        public bool mayImportLegacySetup { get; set; }
+        public DesktopBrowserSettings browser { get; set; }
         public DesktopDriveSettings drive { get; set; }
         public DesktopAuthenticationSettings authentication { get; set; }
         public DesktopScheduleSettings schedule { get; set; }
@@ -111,7 +126,28 @@ namespace CourseMirror.ControlPanel
         public DesktopDriveSettings drive { get; set; }
         public DesktopAuthenticationSettings authentication { get; set; }
         public DesktopScheduleSettings schedule { get; set; }
+        public DesktopBrowserSettings browser { get; set; }
         public string mirrorAction { get; set; }
+    }
+
+    internal sealed class BrowserProbeRequest
+    {
+        public int schemaVersion { get; set; }
+        public string executablePath { get; set; }
+    }
+
+    internal sealed class SourceImportRequest
+    {
+        public int schemaVersion { get; set; }
+        public string sourceDir { get; set; }
+    }
+
+    internal sealed class SourceImportResponse
+    {
+        public int schemaVersion { get; set; }
+        public bool ok { get; set; }
+        public bool imported { get; set; }
+        public SettingsValidationError[] errors { get; set; }
     }
 
     internal sealed class SettingsValidationError
@@ -191,6 +227,9 @@ namespace CourseMirror.ControlPanel
         Task<BackendStatus> GetStatusAsync();
         Task<DesktopSettings> GetSettingsAsync();
         Task<SettingsSaveResponse> SaveSettingsAsync(SettingsSaveRequest request);
+        Task<DesktopBrowserSettings> GetBrowserAsync();
+        Task<DesktopBrowserSettings> ProbeBrowserAsync(string executablePath);
+        Task<SourceImportResponse> ImportSourceAsync(string sourceDir);
         Task<BackendProcessResult> RunSyncAsync(string mode);
         Task<BackendProcessResult> RunRefreshLoginAsync();
         Task<BackendProcessResult> RunScheduledAsync();
@@ -217,6 +256,16 @@ namespace CourseMirror.ControlPanel
         internal ProcessStartInfo CreateSettingsSaveStartInfo()
         {
             return CreateStartInfo("settings", true, "save", "--json");
+        }
+
+        internal ProcessStartInfo CreateBrowserProbeStartInfo()
+        {
+            return CreateStartInfo("browser", true, "probe", "--json");
+        }
+
+        internal ProcessStartInfo CreateSourceImportStartInfo()
+        {
+            return CreateStartInfo("settings", true, "import", "--json");
         }
 
         private ProcessStartInfo CreateStartInfo(string command, bool redirectStandardInput, params string[] arguments)
@@ -329,6 +378,46 @@ namespace CourseMirror.ControlPanel
             return response;
         }
 
+        public async Task<DesktopBrowserSettings> GetBrowserAsync()
+        {
+            BackendProcessResult result = await RunAsync("browser", "--json");
+            if (result.ExitCode != 0)
+                throw new BackendCommandException("The CourseMirror backend could not inspect compatible browsers.", result.ExitCode);
+            return ParseBrowserResponse(result.StandardOutput);
+        }
+
+        public async Task<DesktopBrowserSettings> ProbeBrowserAsync(string executablePath)
+        {
+            var request = new BrowserProbeRequest { schemaVersion = 1, executablePath = executablePath ?? String.Empty };
+            BackendProcessResult result = await RunProcessAsync("browser", _json.Serialize(request), "probe", "--json");
+            if (result.ExitCode != 0)
+                throw new BackendCommandException("The selected browser could not be validated.", result.ExitCode);
+            return ParseBrowserResponse(result.StandardOutput);
+        }
+
+        public async Task<SourceImportResponse> ImportSourceAsync(string sourceDir)
+        {
+            var request = new SourceImportRequest { schemaVersion = 1, sourceDir = sourceDir ?? String.Empty };
+            BackendProcessResult result = await RunProcessAsync("settings", _json.Serialize(request), "import", "--json");
+            if (result.ExitCode != 0)
+                throw new BackendCommandException("The selected setup could not be imported.", result.ExitCode);
+            SourceImportResponse response = DeserializeResponse<SourceImportResponse>(result.StandardOutput, "source import");
+            if (response == null || response.schemaVersion != SupportedStatusSchemaVersion)
+                throw new InvalidDataException("The CourseMirror source-import schema is not supported.");
+            if (!response.ok && (response.errors == null || response.errors.Length == 0))
+                throw new InvalidDataException("The CourseMirror backend returned an incomplete source-import response.");
+            return response;
+        }
+
+        private DesktopBrowserSettings ParseBrowserResponse(string standardOutput)
+        {
+            DesktopBrowserSettings browser = DeserializeResponse<DesktopBrowserSettings>(standardOutput, "browser");
+            if (browser == null || browser.schemaVersion != SupportedStatusSchemaVersion
+                || !String.Equals(browser.engine, "chromium", StringComparison.Ordinal))
+                throw new InvalidDataException("The CourseMirror browser response is not supported.");
+            return browser;
+        }
+
         internal SettingsSaveResponse ParseSettingsSaveResponseForSelfTest(string standardOutput)
         {
             return ParseSettingsSaveResponse(standardOutput);
@@ -382,7 +471,7 @@ namespace CourseMirror.ControlPanel
         {
             if (settings == null || settings.schemaVersion != SupportedStatusSchemaVersion)
                 throw new InvalidDataException("The CourseMirror backend settings schema is not supported.");
-            if (String.IsNullOrWhiteSpace(settings.mirrorDir) || settings.drive == null || settings.authentication == null || settings.schedule == null)
+            if (String.IsNullOrWhiteSpace(settings.mirrorDir) || settings.drive == null || settings.authentication == null || settings.schedule == null || settings.browser == null)
                 throw new InvalidDataException("The CourseMirror backend settings response is incomplete.");
             if (settings.schedule.intervalHours < 1 || settings.schedule.intervalHours > 24
                 || settings.schedule.fullIntervalDays < 1 || settings.schedule.fullIntervalDays > 30)

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BUNDLE = path.join(ROOT, 'dist', 'CourseMirror');
 const CONTROL_PANEL = path.join(BUNDLE, 'CourseMirror.exe');
-const EXPECTED_BASE = '2.4.1';
+const EXPECTED_BASE = '3.0.0';
 const EXPECTED_APP_ID = '7E264BC7-FCBE-4BF2-9A24-E342C533A770';
 
 const read = relative => fs.readFile(path.join(ROOT, relative), 'utf8');
@@ -23,7 +23,7 @@ const helper = await read('desktop/CourseMirror.CredentialHelper/Program.cs');
 const identity = await read('desktop/Shared/CourseMirrorProcessIdentity.cs');
 const workflow = await read('.github/workflows/ci.yml');
 
-assert.equal(packageJson.version, EXPECTED_BASE, '2C.2 must keep version 2.4.1');
+assert.equal(packageJson.version, EXPECTED_BASE, 'Windows v3 lifecycle tests must use version 3.0.0');
 assert.equal(packageJson.scripts['installer-lifecycle-selftest'], 'node scripts/installer-lifecycle-selftest.mjs');
 assert.match(product, new RegExp(`ProductAppId "\\{\\{${EXPECTED_APP_ID.replaceAll('-', '\\-')}\\}"`));
 assert.match(product, new RegExp(`ProductUninstallKey ".*\\{${EXPECTED_APP_ID.replaceAll('-', '\\-')}\\}_is1"`));

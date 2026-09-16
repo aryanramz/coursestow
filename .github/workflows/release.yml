@@ -53,6 +53,8 @@ jobs:
           npm run runtime-foundation-selftest
           npm run desktop-backend-selftest
           npm run desktop-settings-selftest
+          npm run browser-selftest
+          npm run source-import-selftest
           npm run auth-selftest
           npm run schedule-selftest
           npm run school-indexes-selftest
