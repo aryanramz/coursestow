@@ -26,7 +26,7 @@ async function makeRuntime(tmp, name) {
   };
 }
 
-const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-runtime-foundation-'));
+const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-runtime-foundation-'));
 try {
   const atomicDir = path.join(tmp, 'Atomic');
   const atomicFile = path.join(atomicDir, 'config.json');
@@ -161,7 +161,7 @@ try {
   await assert.rejects(loadAppConfig({
     runtime: activeRuntime,
     initializationLock: { waitMs: 100, pollMs: 10 }
-  }), /Timed out after 100ms waiting for CourseMirror initialization/);
+  }), /Timed out after 100ms waiting for CourseStow initialization/);
   const activePayload = JSON.parse(await fs.readFile(held.lockFile, 'utf8'));
   assert.equal(activePayload.token, held.payload.token, 'an active initialization lock must not be stolen');
   await held.release();

@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo CourseMirror - FULL (START_HERE compatibility launcher)
+echo CourseStow - FULL (START_HERE compatibility launcher)
 where node >nul 2>nul
 if errorlevel 1 (
   echo.
@@ -10,7 +10,7 @@ if errorlevel 1 (
   exit /b 1
 )
 if not exist node_modules (
-  echo CourseMirror runtime dependencies are missing. Run setup.ps1 or reinstall the application.
+  echo CourseStow runtime dependencies are missing. Run setup.ps1 or reinstall the application.
   goto :error
 )
 echo.

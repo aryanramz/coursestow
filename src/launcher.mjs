@@ -38,7 +38,7 @@ if (!COMMANDS[command]) {
   });
 
   child.once('error', error => {
-    console.error(`Could not launch CourseMirror: ${error.message}`);
+    console.error(`Could not launch CourseStow: ${error.message}`);
     process.exitCode = 1;
   });
   child.once('exit', (code, signal) => {

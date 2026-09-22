@@ -44,7 +44,7 @@ function safeOperationLabel(mode) {
     case 'scheduled': return 'Scheduled Sync';
     case 'settings': return 'Settings';
     case 'refresh-login': return 'Refresh Login';
-    default: return 'CourseMirror operation';
+    default: return 'CourseStow operation';
   }
 }
 
@@ -81,7 +81,7 @@ export async function getDesktopStatus({ runtime = {} } = {}) {
       profileExists: await isDirectory(paths.profileDir),
       lastSync: null,
       activeOperation: null,
-      attention: `CourseMirror found private data in both ${error.legacyDataDir} and ${error.dataDir}. Automatic migration stopped; manual review is required.`
+      attention: `CourseStow found private data in both ${error.legacyDataDir} and ${error.dataDir}. Automatic migration stopped; manual review is required.`
     };
   }
   const { config, paths } = loaded;

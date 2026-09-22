@@ -47,7 +47,7 @@ DisableWelcomePage=no
 DisableReadyPage=yes
 CloseApplications=no
 RestartApplications=no
-SetupMutex=Local\CourseMirror.InstallerLifecycle
+SetupMutex=Local\CourseStow.InstallerLifecycle
 UninstallDisplayIcon={app}\{#ProductExecutable}
 UninstallDisplayName={#ProductName}
 
@@ -110,7 +110,7 @@ var
   Timestamp: String;
   Content: String;
 begin
-  LogDir := ExpandConstant('{localappdata}\CourseMirror\logs\installer');
+  LogDir := ExpandConstant('{localappdata}\CourseStow\logs\installer');
   if not ForceDirectories(LogDir) then Exit;
   Timestamp := GetDateTimeString('yyyymmdd-hhnnss', '-', ':');
   LogFile := AddBackslash(LogDir) + 'failure-' + Timestamp + '.log';
@@ -218,8 +218,8 @@ begin
     if ResultCode = MaintenanceBusy then
     begin
       PromptResult := MsgBox(
-        'CourseMirror is currently running.' + #13#10 +
-        'Close CourseMirror or wait for the current operation to finish, then click Retry.',
+        'CourseStow is currently running.' + #13#10 +
+        'Close CourseStow or wait for the current operation to finish, then click Retry.',
         mbError,
         MB_RETRYCANCEL);
       if PromptResult = IDRETRY then Continue;
@@ -227,7 +227,7 @@ begin
     end;
 
     MsgBox(
-      'CourseMirror could not safely inspect its current activity. Setup will not replace or remove application files.',
+      'CourseStow could not safely inspect its current activity. Setup will not replace or remove application files.',
       mbCriticalError,
       MB_OK);
     Exit;
@@ -351,7 +351,7 @@ begin
   if InstallMode = 'downgrade' then
   begin
     MsgBox(
-      'A newer version of CourseMirror is already installed.' + #13#10 +
+      'A newer version of CourseStow is already installed.' + #13#10 +
       'This older installer cannot replace it.',
       mbCriticalError,
       MB_OK);
@@ -360,7 +360,7 @@ begin
   end;
   if InstallMode = 'invalid-incoming-version' then
   begin
-    MsgBox('The CourseMirror installer version is invalid.', mbCriticalError, MB_OK);
+    MsgBox('The CourseStow installer version is invalid.', mbCriticalError, MB_OK);
     Result := False;
     Exit;
   end;
@@ -386,13 +386,13 @@ begin
   LifecycleStage := 'preflight';
   if not ExtractIncomingMaintenancePayload() then
   begin
-    Result := 'CourseMirror setup could not prepare its trusted lifecycle preflight.';
+    Result := 'CourseStow setup could not prepare its trusted lifecycle preflight.';
     Exit;
   end;
   MaintenanceExecutable := AddBackslash(IncomingMaintenanceRoot()) + '{#ProductExecutable}';
   if not RunPreflightWithRetry(MaintenanceExecutable) then
   begin
-    Result := 'CourseMirror setup was canceled because application activity could not be cleared safely.';
+    Result := 'CourseStow setup was canceled because application activity could not be cleared safely.';
     Exit;
   end;
 
@@ -402,7 +402,7 @@ begin
   begin
     if not RestorePayloadBackup() then
       WriteLifecycleFailureLog(InstallMode, 'payload-backup', 'rollback-failed');
-    Result := 'CourseMirror could not stage the existing application payload safely. No private user data was changed.';
+    Result := 'CourseStow could not stage the existing application payload safely. No private user data was changed.';
   end;
 end;
 
@@ -418,7 +418,7 @@ begin
     if not RemovePayloadBackup() then
     begin
       WriteLifecycleFailureLog(InstallMode, LifecycleStage, 'backup-cleanup-failed');
-      MsgBox('CourseMirror was installed, but payload cleanup needs repair.', mbError, MB_OK);
+      MsgBox('CourseStow was installed, but payload cleanup needs repair.', mbError, MB_OK);
     end;
 
     LifecycleStage := 'schedule-reconcile';
@@ -429,7 +429,7 @@ begin
     begin
       WriteLifecycleFailureLog(InstallMode, LifecycleStage, 'schedule-reconcile-failed');
       MsgBox(
-        'CourseMirror was installed, but automatic sync scheduling could not be reconciled. Running setup again can repair it.',
+        'CourseStow was installed, but automatic sync scheduling could not be reconciled. Running setup again can repair it.',
         mbError,
         MB_OK);
     end;
@@ -462,7 +462,7 @@ var
 begin
   OptionsForm := CreateCustomForm(ScaleX(500), ScaleY(210), False, False);
   try
-    OptionsForm.Caption := 'Uninstall CourseMirror';
+    OptionsForm.Caption := 'Uninstall CourseStow';
     OptionsForm.Position := poScreenCenter;
 
     PreservationText := TNewStaticText.Create(OptionsForm);
@@ -471,13 +471,13 @@ begin
     PreservationText.AutoSize := False;
     PreservationText.WordWrap := True;
     PreservationText.Caption :=
-      'CourseMirror application files will be removed.' + #13#10 + #13#10 +
-      'Your settings, browser session, saved credentials, local course mirror, and Google Drive copy will be preserved.';
+      'CourseStow application files will be removed.' + #13#10 + #13#10 +
+      'Your settings, browser session, saved credentials, local school mirror, and Google Drive copy will be preserved.';
 
     RemovePrivateDataCheck := TNewCheckBox.Create(OptionsForm);
     RemovePrivateDataCheck.Parent := OptionsForm;
     RemovePrivateDataCheck.SetBounds(ScaleX(20), ScaleY(108), ScaleX(460), ScaleY(24));
-    RemovePrivateDataCheck.Caption := 'Also remove CourseMirror settings and private app data';
+    RemovePrivateDataCheck.Caption := 'Also remove CourseStow settings and private app data';
     RemovePrivateDataCheck.Checked := False;
 
     ContinueButton := TNewButton.Create(OptionsForm);
@@ -523,8 +523,8 @@ begin
     begin
       WriteLifecycleFailureLog('uninstall', 'schedule-remove', 'schedule-remove-failed');
       RaiseException(
-        'CourseMirror could not remove its scheduled sync task, so uninstall was stopped. ' +
-        'No CourseMirror application or private data was removed. ' +
+        'CourseStow could not remove its scheduled sync task, so uninstall was stopped. ' +
+        'No CourseStow application or private data was removed. ' +
         'Try again after checking Windows Task Scheduler.');
     end;
 
@@ -536,7 +536,7 @@ begin
         ResultCode) or (ResultCode <> MaintenanceSuccess) then
       begin
         WriteLifecycleFailureLog('uninstall', 'credential-remove', 'credential-remove-failed');
-        RaiseException('CourseMirror could not safely remove its saved credential. Private app data was preserved.');
+        RaiseException('CourseStow could not safely remove its saved credential. Private app data was preserved.');
       end;
       if not RunMaintenance(
         ExpandConstant('{app}\{#ProductExecutable}'),
@@ -544,7 +544,7 @@ begin
         ResultCode) or (ResultCode <> MaintenanceSuccess) then
       begin
         WriteLifecycleFailureLog('uninstall', 'private-data-remove', 'private-data-remove-failed');
-        RaiseException('CourseMirror could not safely remove its private app data. The school mirror and Google Drive copy were not changed.');
+        RaiseException('CourseStow could not safely remove its private app data. The school mirror and Google Drive copy were not changed.');
       end;
     end;
   end

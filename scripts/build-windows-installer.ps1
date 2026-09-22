@@ -6,9 +6,9 @@ $ErrorActionPreference = 'Stop'
 
 $ExpectedCompilerVersion = '7.1.0'
 $ExpectedCompilerMachine = 0x8664
-$ProductName = 'CourseMirror'
+$ProductName = 'CourseStow'
 $ProductPublisher = 'aryanramz'
-$ProductRepository = 'https://github.com/aryanramz/coursemirror'
+$ProductRepository = 'https://github.com/aryanramz/coursestow'
 
 function Read-JsonFile([string]$Path, [string]$Label) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -133,10 +133,10 @@ function Get-Sha256([string]$Path) {
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $packageFile = Join-Path $repositoryRoot 'package.json'
 $licenseFile = Join-Path $repositoryRoot 'LICENSE'
-$bundleRoot = Join-Path $repositoryRoot 'dist\CourseMirror'
+$bundleRoot = Join-Path $repositoryRoot 'dist\CourseStow'
 $manifestFile = Join-Path $bundleRoot 'bundle-manifest.json'
 $packagedPackageFile = Join-Path $bundleRoot 'app\package.json'
-$installerSource = Join-Path $repositoryRoot 'installer\windows\CourseMirror.iss'
+$installerSource = Join-Path $repositoryRoot 'installer\windows\CourseStow.iss'
 $outputDirectory = Join-Path $repositoryRoot 'dist\installer'
 
 $package = Read-JsonFile $packageFile 'Authoritative package metadata'
@@ -144,7 +144,7 @@ $appVersion = [string]$package.version
 if ($appVersion -notmatch '^\d+\.\d+\.\d+(?:\.\d+)?$') {
     throw "Authoritative package version is not a supported numeric installer version: $appVersion"
 }
-if ([string]$package.name -ne 'coursemirror') { throw 'Authoritative package name must be coursemirror.' }
+if ([string]$package.name -ne 'coursestow') { throw 'Authoritative package name must be coursestow.' }
 if (-not (Test-Path -LiteralPath $licenseFile -PathType Leaf)) { throw "Project MIT LICENSE is missing: $licenseFile" }
 if (-not (Test-Path -LiteralPath $installerSource -PathType Leaf)) { throw "Inno Setup source is missing: $installerSource" }
 if (-not (Test-Path -LiteralPath $bundleRoot -PathType Container)) {
@@ -152,11 +152,11 @@ if (-not (Test-Path -LiteralPath $bundleRoot -PathType Container)) {
 }
 
 $requiredBundleFiles = @(
-    'CourseMirror.exe',
-    'CourseMirror.exe.config',
-    'CourseMirror Credential Helper.exe',
-    'CourseMirror Credential Helper.exe.config',
-    'CourseMirror.cmd',
+    'CourseStow.exe',
+    'CourseStow.exe.config',
+    'CourseStow Credential Helper.exe',
+    'CourseStow Credential Helper.exe.config',
+    'CourseStow.cmd',
     'LICENSE',
     'bundle-manifest.json',
     'runtime\node.exe',
@@ -173,7 +173,7 @@ foreach ($relative in $requiredBundleFiles) {
 }
 
 foreach ($relative in @(
-    'config.json', 'BrowserProfile', 'state', 'logs', '.env', '.coursemirror.lock',
+    'config.json', 'BrowserProfile', 'state', 'logs', '.env', '.coursestow.lock',
     'app\config.json', 'app\BrowserProfile', 'app\state', 'app\logs'
 )) {
     if (Test-Path -LiteralPath (Join-Path $bundleRoot $relative)) {
@@ -193,7 +193,7 @@ foreach ($entry in Get-ChildItem -LiteralPath $bundleRoot -Recurse -Force) {
     if (-not $entry.PSIsContainer -and (
         $entry.Name -ieq 'config.json' -or
         $entry.Name -ieq '_sync_state.json' -or
-        $entry.Name -ieq '.coursemirror.lock' -or
+        $entry.Name -ieq '.coursestow.lock' -or
         $entry.Name -ieq '.brightspace-sync.lock' -or
         $entry.Name -ieq '.env' -or
         $entry.Name -ilike '.env.*'
@@ -209,18 +209,18 @@ Assert-VersionMatch 'Packaged application' ([string]$packagedPackage.version) $a
 if ([string]$manifest.application.name -ne $ProductName -or
     [string]$manifest.application.publisher -ne $ProductPublisher -or
     [string]$manifest.application.repository -ne $ProductRepository -or
-    [string]$manifest.application.packageName -ne 'coursemirror') {
-    throw 'Portable bundle product metadata does not match the CourseMirror installer identity.'
+    [string]$manifest.application.packageName -ne 'coursestow') {
+    throw 'Portable bundle product metadata does not match the CourseStow installer identity.'
 }
-if ([string]$manifest.desktopEntrypoint -ne 'CourseMirror.exe' -or
-    [string]$manifest.credentialHelper -ne 'CourseMirror Credential Helper.exe' -or
+if ([string]$manifest.desktopEntrypoint -ne 'CourseStow.exe' -or
+    [string]$manifest.credentialHelper -ne 'CourseStow Credential Helper.exe' -or
     [string]$manifest.runtime.platform -ne 'win32' -or
     [string]$manifest.runtime.architecture -ne 'x64') {
-    throw 'Portable bundle entrypoint or runtime architecture metadata is not installable by the x64 CourseMirror setup.'
+    throw 'Portable bundle entrypoint or runtime architecture metadata is not installable by the x64 CourseStow setup.'
 }
 
-Assert-PackagedBinaryVersion (Join-Path $bundleRoot 'CourseMirror.exe') 'CourseMirror.exe' $appVersion
-Assert-PackagedBinaryVersion (Join-Path $bundleRoot 'CourseMirror Credential Helper.exe') 'CourseMirror Credential Helper.exe' $appVersion
+Assert-PackagedBinaryVersion (Join-Path $bundleRoot 'CourseStow.exe') 'CourseStow.exe' $appVersion
+Assert-PackagedBinaryVersion (Join-Path $bundleRoot 'CourseStow Credential Helper.exe') 'CourseStow Credential Helper.exe' $appVersion
 
 $licenseHash = Get-Sha256 $licenseFile
 foreach ($bundledLicense in @((Join-Path $bundleRoot 'LICENSE'), (Join-Path $bundleRoot 'app\LICENSE'))) {
@@ -273,6 +273,6 @@ if ((Get-Sha256 $installerFile) -cne $sha256) {
 }
 
 Write-Host "Inno Setup compiler: $ExpectedCompilerVersion x64"
-Write-Host "CourseMirror version: $appVersion"
+Write-Host "CourseStow version: $appVersion"
 Write-Host "Installer: $installerFile"
 Write-Host "SHA-256: $sha256"

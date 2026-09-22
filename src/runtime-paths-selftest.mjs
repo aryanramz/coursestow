@@ -18,11 +18,11 @@ async function listTree(root) {
   return found.sort();
 }
 
-const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-runtime-paths-'));
+const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-runtime-paths-'));
 try {
   const userHome = path.join(tmp, 'User');
   const localAppData = path.join(userHome, 'AppData', 'Local');
-  const appRoot = path.join(tmp, 'Program Files', 'CourseMirror');
+  const appRoot = path.join(tmp, 'Program Files', 'CourseStow');
   const legacyMirror = path.join(appRoot, 'LegacyMirror');
   await fs.mkdir(path.join(appRoot, 'src'), { recursive: true });
   await fs.writeFile(path.join(appRoot, 'config.example.json'), JSON.stringify({
@@ -50,7 +50,7 @@ try {
     homeDir: userHome
   };
   const first = await loadAppConfig({ mode: 'quick', runtime });
-  const expectedDataDir = path.join(localAppData, 'CourseMirror');
+  const expectedDataDir = path.join(localAppData, 'CourseStow');
   assert.equal(first.paths.dataDir, expectedDataDir);
   assert.equal(first.config.configFile, path.join(expectedDataDir, 'config.json'));
   assert.equal(first.config.profileDir, path.join(expectedDataDir, 'BrowserProfile'));
@@ -75,7 +75,7 @@ try {
   const renamedLocalAppData = path.join(renamedHome, 'AppData', 'Local');
   const renamedAppRoot = path.join(tmp, 'Renamed Product App');
   const oldProductData = path.join(renamedLocalAppData, 'Brightspace Sync');
-  const newProductData = path.join(renamedLocalAppData, 'CourseMirror');
+  const newProductData = path.join(renamedLocalAppData, 'CourseStow');
   const selectedMirror = path.join(renamedHome, 'School Files');
   await fs.mkdir(renamedAppRoot, { recursive: true });
   await fs.copyFile(path.join(appRoot, 'config.example.json'), path.join(renamedAppRoot, 'config.example.json'));
@@ -114,7 +114,7 @@ try {
   const conflictLocalAppData = path.join(conflictHome, 'AppData', 'Local');
   const conflictAppRoot = path.join(tmp, 'Conflict App');
   const conflictOld = path.join(conflictLocalAppData, 'Brightspace Sync');
-  const conflictNew = path.join(conflictLocalAppData, 'CourseMirror');
+  const conflictNew = path.join(conflictLocalAppData, 'CourseStow');
   await fs.mkdir(conflictAppRoot, { recursive: true });
   await fs.copyFile(path.join(appRoot, 'config.example.json'), path.join(conflictAppRoot, 'config.example.json'));
   await fs.mkdir(conflictOld, { recursive: true });
@@ -180,7 +180,7 @@ try {
       homeDir: freshHome
     }
   });
-  assert.equal(fresh.config.outputDir, path.join(freshHome, 'Documents', 'CourseMirror'));
+  assert.equal(fresh.config.outputDir, path.join(freshHome, 'Documents', 'CourseStow'));
   assert.equal(fresh.config.baseUrl, '', 'a generated user config must require setup of baseUrl');
   assert.equal(fresh.config.drivePublish.enabled, false, 'Drive publishing must be opt-in for a new user');
   assert.equal(fresh.config.drivePublish.destination, '');
@@ -196,7 +196,7 @@ try {
       ...runtime,
       env: {
         ...runtime.env,
-        COURSEMIRROR_MIRROR_DIR: mirrorOverride
+        COURSESTOW_MIRROR_DIR: mirrorOverride
       }
     }
   });
@@ -209,8 +209,8 @@ try {
     env: {
       USERPROFILE: freshHome,
       LOCALAPPDATA: freshLocalAppData,
-      COURSEMIRROR_DATA_DIR: path.join(tmp, 'Custom Data'),
-      COURSEMIRROR_MIRROR_DIR: mirrorOverride
+      COURSESTOW_DATA_DIR: path.join(tmp, 'Custom Data'),
+      COURSESTOW_MIRROR_DIR: mirrorOverride
     },
     platform: 'win32',
     homeDir: freshHome

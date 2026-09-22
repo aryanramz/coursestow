@@ -24,7 +24,7 @@ export function validateTagMatchesPackage(tag, packageVersion) {
 }
 
 export function expectedReleaseArtifactNames(version) {
-  const base = `CourseMirror-${version}-Setup.exe`;
+  const base = `CourseStow-${version}-Setup.exe`;
   return [base, `${base}.sha256`];
 }
 
@@ -55,7 +55,7 @@ export async function validateReleaseArtifacts(directory, version) {
 
 export function releaseNotes(tag, checksumLine) {
   return [
-    `# CourseMirror ${tag}`,
+    `# CourseStow ${tag}`,
     '',
     'Download the Windows setup executable and verify it with the attached SHA-256 sidecar.',
     '',
@@ -78,7 +78,7 @@ function readOption(args, name) {
 async function main() {
   const args = process.argv.slice(2);
   const packageJson = JSON.parse(await fs.readFile(path.join(ROOT, 'package.json'), 'utf8'));
-  if (packageJson.name !== 'coursemirror') throw new Error('package.json name must remain coursemirror.');
+  if (packageJson.name !== 'coursestow') throw new Error('package.json name must remain coursestow.');
   const tag = readOption(args, '--tag') ?? process.env.GITHUB_REF_NAME;
   if (!tag) throw new Error('A release tag is required through --tag or GITHUB_REF_NAME.');
   const version = validateTagMatchesPackage(tag, packageJson.version);
@@ -90,7 +90,7 @@ async function main() {
     if (!artifacts) throw new Error('--write-notes requires --artifacts.');
     await fs.writeFile(path.resolve(notesFile), releaseNotes(tag, artifacts.checksumLine), 'utf8');
   }
-  console.log(`Validated CourseMirror stable release contract for ${tag}.`);
+  console.log(`Validated CourseStow stable release contract for ${tag}.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

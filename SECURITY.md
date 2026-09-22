@@ -1,10 +1,10 @@
 # Security and release checklist
 
-CourseMirror operates inside an authenticated student session. Treat local browser state and mirrored course data as sensitive.
+CourseStow operates inside an authenticated student session. Treat local browser state and mirrored course data as sensitive.
 
 ## Never commit
 
-- `%LOCALAPPDATA%\CourseMirror\` or copies of its contents
+- `%LOCALAPPDATA%\CourseStow\` or copies of its contents
 - the retained legacy `%LOCALAPPDATA%\Brightspace Sync\` runtime root after product-name migration
 - `.brightspace-profile/`
 - `BrightspaceMirror/`
@@ -17,17 +17,17 @@ CourseMirror operates inside an authenticated student session. Treat local brows
 
 The crawler reuses a dedicated persistent Chromium profile. Microsoft Edge, Google Chrome, and Brave are the officially tested Windows browser families. Vivaldi, Opera, Opera GX, and Chromium use best-effort fixed-location discovery; another compatible Chromium executable can be selected manually.
 
-Every user-selected executable is validated through Playwright's Chromium engine with a bounded headless `data:`-page probe. The probe uses a unique temporary profile, never the authenticated BrowserProfile, contacts no Brightspace site, closes the browser, and removes its temporary data. CourseMirror does not broadly scan the filesystem, bundle a browser, download a Playwright browser, install extensions, or install a browser automatically.
+Every user-selected executable is validated through Playwright's Chromium engine with a bounded headless `data:`-page probe. The probe uses a unique temporary profile, never the authenticated BrowserProfile, contacts no Brightspace site, closes the browser, and removes its temporary data. CourseStow does not broadly scan the filesystem, bundle a browser, download a Playwright browser, install extensions, or install a browser automatically.
 
 Passwords are not required in `config.json` or environment variables. Browser password-manager assistance is optional and best-effort; normal SSO/MFA remains the supported fallback.
 
-CourseMirror does not export Playwright `storageState` to a separate plaintext JSON file. Session persistence stays inside the dedicated Chromium profile at `%LOCALAPPDATA%\CourseMirror\BrowserProfile`. If the legacy `_brightspace-auth-state.json` file from v2.4.0 exists, the crawler removes it automatically. The browser profile itself remains sensitive and should be protected like any authenticated browser profile.
+CourseStow does not export Playwright `storageState` to a separate plaintext JSON file. Session persistence stays inside the dedicated Chromium profile at `%LOCALAPPDATA%\CourseStow\BrowserProfile`. If the legacy `_brightspace-auth-state.json` file from v2.4.0 exists, the crawler removes it automatically. The browser profile itself remains sensitive and should be protected like any authenticated browser profile.
 
-Configuration, session data, runtime state, locks, and the reserved log location are outside the application directory under `%LOCALAPPDATA%\CourseMirror`. The mirror remains in a location selected by the user. Product-name and repo-relative migrations copy rather than delete legacy private data so rollback remains possible. If both old and new product runtime roots contain meaningful data, CourseMirror stops for manual review instead of merging them. Users should remove a legacy copy manually only after they are satisfied with the migration.
+Configuration, session data, runtime state, locks, and the reserved log location are outside the application directory under `%LOCALAPPDATA%\CourseStow`. The mirror remains in a location selected by the user. Product-name and repo-relative migrations copy rather than delete legacy private data so rollback remains possible. If both old and new product runtime roots contain meaningful data, CourseStow stops for manual review instead of merging them. Users should remove a legacy copy manually only after they are satisfied with the migration.
 
 The first-run source-checkout importer runs only after the user explicitly selects a directory and only when the installed runtime has no meaningful configured data. It rejects reparse-point sources, stages data before promotion, rolls back failed promotion, and leaves the source untouched. Only compatible config, BrowserProfile, and allowlisted continuity state are eligible; mirrors, Drive output, source code, Git metadata, dependencies, arbitrary files, logs, and plaintext credential fields are excluded.
 
-CourseMirror has no telemetry, analytics, crash-reporting service, elevation helper, Windows service, or force-kill path. Update checks are unauthenticated requests to the public GitHub Releases endpoint and persist only allowlisted version/cache metadata.
+CourseStow has no telemetry, analytics, crash-reporting service, elevation helper, Windows service, or force-kill path. Update checks are unauthenticated requests to the public GitHub Releases endpoint and persist only allowlisted version/cache metadata.
 
 ## Read-focused write protection
 

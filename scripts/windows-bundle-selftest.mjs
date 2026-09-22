@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SOURCE_BUNDLE = path.join(ROOT, 'dist', 'CourseMirror');
+const SOURCE_BUNDLE = path.join(ROOT, 'dist', 'CourseStow');
 const TEXT_EXTENSIONS = new Set(['.cmd', '.config', '.json', '.mjs', '.js', '.cjs', '.txt', '.md', '.xml']);
 const sourcePackage = JSON.parse(await fs.readFile(path.join(ROOT, 'package.json'), 'utf8'));
 
@@ -31,14 +31,14 @@ function normalizeFourPartVersion(value, label) {
 async function readManagedBinaryVersions(powershell, binary, { cwd, env, label }) {
   const command = [
     "$ErrorActionPreference = 'Stop'",
-    '$binary = $env:COURSEMIRROR_BINARY_VERSION_PATH',
+    '$binary = $env:COURSESTOW_BINARY_VERSION_PATH',
     '$info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($binary)',
     '$assembly = [System.Reflection.AssemblyName]::GetAssemblyName($binary).Version.ToString()',
     "[Console]::Out.Write(($assembly, $info.FileVersion, $info.ProductVersion -join '|'))"
   ].join('; ');
   const result = await run(powershell, ['-NoProfile', '-NonInteractive', '-Command', command], {
     cwd,
-    env: { ...env, COURSEMIRROR_BINARY_VERSION_PATH: binary },
+    env: { ...env, COURSESTOW_BINARY_VERSION_PATH: binary },
     label
   });
   assert.equal(result.code, 0, `${label} failed: ${result.stderr}`);
@@ -110,7 +110,7 @@ async function assertNoDeveloperPathsOrSensitiveContent(bundleRoot, files) {
       assert.equal(text.toLowerCase().includes(forbidden.toLowerCase()), false, `${relative} contains a developer-machine path.`);
     }
     for (const pattern of secretPatterns) assert.equal(pattern.test(text), false, `${relative} contains sensitive material matching ${pattern}.`);
-    const firstParty = relative === 'CourseMirror.cmd'
+    const firstParty = relative === 'CourseStow.cmd'
       || relative === 'bundle-manifest.json'
       || relative === path.join('app', 'package.json')
       || relative === path.join('app', 'config.example.json')
@@ -140,11 +140,11 @@ const windowsPowerShell = path.join(system32, 'WindowsPowerShell', 'v1.0', 'powe
 const isolatedSystemPath = [system32, systemRoot].join(path.delimiter);
 await requireFile(systemComSpec, 'Windows command processor');
 await requireFile(windowsPowerShell, 'Windows PowerShell');
-await requireFile(path.join(SOURCE_BUNDLE, 'CourseMirror.cmd'), 'built launcher');
-await requireFile(path.join(SOURCE_BUNDLE, 'CourseMirror.exe'), 'compiled Windows control panel');
-await requireFile(path.join(SOURCE_BUNDLE, 'CourseMirror.exe.config'), 'Windows control-panel runtime configuration');
-await requireFile(path.join(SOURCE_BUNDLE, 'CourseMirror Credential Helper.exe'), 'Windows credential helper');
-await requireFile(path.join(SOURCE_BUNDLE, 'CourseMirror Credential Helper.exe.config'), 'Windows credential-helper runtime configuration');
+await requireFile(path.join(SOURCE_BUNDLE, 'CourseStow.cmd'), 'built launcher');
+await requireFile(path.join(SOURCE_BUNDLE, 'CourseStow.exe'), 'compiled Windows control panel');
+await requireFile(path.join(SOURCE_BUNDLE, 'CourseStow.exe.config'), 'Windows control-panel runtime configuration');
+await requireFile(path.join(SOURCE_BUNDLE, 'CourseStow Credential Helper.exe'), 'Windows credential helper');
+await requireFile(path.join(SOURCE_BUNDLE, 'CourseStow Credential Helper.exe.config'), 'Windows credential-helper runtime configuration');
 await requireFile(path.join(SOURCE_BUNDLE, 'LICENSE'), 'bundle-root project license');
 await requireFile(path.join(SOURCE_BUNDLE, 'runtime', 'node.exe'), 'private Node.js runtime');
 await requireFile(path.join(SOURCE_BUNDLE, 'app', 'src', 'launcher.mjs'), 'packaged application launcher');
@@ -155,9 +155,9 @@ assert.deepEqual(
   'bundle-root and packaged application licenses must match'
 );
 
-const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-windows-bundle-selftest-'));
+const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-windows-bundle-selftest-'));
 try {
-  const portableRoot = path.join(temp, 'copied portable bundle', 'CourseMirror');
+  const portableRoot = path.join(temp, 'copied portable bundle', 'CourseStow');
   const unrelatedCwd = path.join(temp, 'unrelated-working-directory');
   const userHome = path.join(temp, 'isolated-user');
   const dataDir = path.join(temp, 'isolated-runtime-data');
@@ -172,28 +172,28 @@ try {
   await fs.cp(SOURCE_BUNDLE, portableRoot, { recursive: true });
 
   const privateNode = path.join(portableRoot, 'runtime', 'node.exe');
-  const controlPanel = path.join(portableRoot, 'CourseMirror.exe');
-  const credentialHelper = path.join(portableRoot, 'CourseMirror Credential Helper.exe');
-  const launcher = path.join(portableRoot, 'CourseMirror.cmd');
+  const controlPanel = path.join(portableRoot, 'CourseStow.exe');
+  const credentialHelper = path.join(portableRoot, 'CourseStow Credential Helper.exe');
+  const launcher = path.join(portableRoot, 'CourseStow.cmd');
   const appRoot = path.join(portableRoot, 'app');
   const manifest = JSON.parse(await fs.readFile(path.join(portableRoot, 'bundle-manifest.json'), 'utf8'));
   const packagedApplication = JSON.parse(await fs.readFile(path.join(appRoot, 'package.json'), 'utf8'));
-  assert.equal(manifest.entrypoint, 'CourseMirror.cmd', 'Milestone 2A command-line entrypoint must remain compatible');
-  assert.equal(manifest.desktopEntrypoint, 'CourseMirror.exe');
-  assert.equal(manifest.credentialHelper, 'CourseMirror Credential Helper.exe');
+  assert.equal(manifest.entrypoint, 'CourseStow.cmd', 'Milestone 2A command-line entrypoint must remain compatible');
+  assert.equal(manifest.desktopEntrypoint, 'CourseStow.exe');
+  assert.equal(manifest.credentialHelper, 'CourseStow Credential Helper.exe');
   assert.deepEqual(manifest.application, {
-    name: 'CourseMirror',
-    packageName: 'coursemirror',
+    name: 'CourseStow',
+    packageName: 'coursestow',
     version: sourcePackage.version,
     publisher: 'aryanramz',
-    repository: 'https://github.com/aryanramz/coursemirror'
+    repository: 'https://github.com/aryanramz/coursestow'
   });
-  assert.equal(packagedApplication.name, 'coursemirror');
+  assert.equal(packagedApplication.name, 'coursestow');
   assert.equal(packagedApplication.version, sourcePackage.version);
   assert.equal(packagedApplication.author, 'aryanramz');
-  assert.equal(packagedApplication.repository?.url, 'https://github.com/aryanramz/coursemirror.git');
-  assert.equal(packagedApplication.homepage, 'https://github.com/aryanramz/coursemirror#readme');
-  assert.equal(packagedApplication.bugs, 'https://github.com/aryanramz/coursemirror/issues');
+  assert.equal(packagedApplication.repository?.url, 'https://github.com/aryanramz/coursestow.git');
+  assert.equal(packagedApplication.homepage, 'https://github.com/aryanramz/coursestow#readme');
+  assert.equal(packagedApplication.bugs, 'https://github.com/aryanramz/coursestow/issues');
   assert.equal(manifest.desktop?.technology, '.NET Framework 4.8 WinForms');
   assert.equal(manifest.desktop?.backendSchemaVersion, 1);
   const isolatedEnv = {
@@ -201,21 +201,21 @@ try {
     PATH: isolatedSystemPath,
     USERPROFILE: userHome,
     LOCALAPPDATA: path.join(userHome, 'AppData', 'Local'),
-    COURSEMIRROR_DATA_DIR: dataDir,
-    COURSEMIRROR_MIRROR_DIR: mirrorDir,
+    COURSESTOW_DATA_DIR: dataDir,
+    COURSESTOW_MIRROR_DIR: mirrorDir,
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
     TEMP: browserTempDir,
     TMP: browserTempDir
   };
   // Native Windows components may consult or create Known Folder state even
-  // when CourseMirror's own data directories are explicitly redirected. Keep
+  // when CourseStow's own data directories are explicitly redirected. Keep
   // the real Windows profile environment for native EXEs and installed
   // browsers, while retaining the sanitized PATH and test-owned app data.
   const windowsHostEnv = {
     ...process.env,
     PATH: isolatedSystemPath,
-    COURSEMIRROR_DATA_DIR: dataDir,
-    COURSEMIRROR_MIRROR_DIR: mirrorDir,
+    COURSESTOW_DATA_DIR: dataDir,
+    COURSESTOW_MIRROR_DIR: mirrorDir,
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
   };
   const expectedWindowsVersion = `${sourcePackage.version}.0`;
@@ -239,8 +239,8 @@ try {
   assert.equal(browserEnv.LOCALAPPDATA, process.env.LOCALAPPDATA);
   if (process.env.TEMP !== undefined) assert.equal(browserEnv.TEMP, process.env.TEMP);
   if (process.env.TMP !== undefined) assert.equal(browserEnv.TMP, process.env.TMP);
-  assert.equal(browserEnv.COURSEMIRROR_DATA_DIR, dataDir);
-  assert.equal(browserEnv.COURSEMIRROR_MIRROR_DIR, mirrorDir);
+  assert.equal(browserEnv.COURSESTOW_DATA_DIR, dataDir);
+  assert.equal(browserEnv.COURSESTOW_MIRROR_DIR, mirrorDir);
   assert.equal(browserEnv.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD, '1');
 
   const pathNode = await run(systemComSpec, ['/d', '/s', '/c', 'node --version'], {
@@ -273,14 +273,14 @@ try {
   assert.equal(privateVersion.stdout.trim(), `v${manifest.runtime.version}`);
 
   const dependencyProbe = [
-    "const resolved = require.resolve('playwright', { paths: [process.env.COURSEMIRROR_PACKAGED_APP] });",
+    "const resolved = require.resolve('playwright', { paths: [process.env.COURSESTOW_PACKAGED_APP] });",
     "const playwright = require(resolved);",
     "if (!playwright.chromium) throw new Error('Playwright chromium API is unavailable');",
     'console.log(resolved);'
   ].join(' ');
   const dependency = await run(privateNode, ['-e', dependencyProbe], {
     cwd: unrelatedCwd,
-    env: { ...isolatedEnv, COURSEMIRROR_PACKAGED_APP: appRoot },
+    env: { ...isolatedEnv, COURSESTOW_PACKAGED_APP: appRoot },
     label: 'packaged production dependency probe'
   });
   assert.equal(dependency.code, 0, dependency.stderr);
@@ -303,18 +303,18 @@ try {
   assert.deepEqual(await snapshotTree(portableRoot), before, 'credential-helper smoke test must not modify the application bundle');
   const credentialTransportProbe = [
     "import { pathToFileURL } from 'node:url';",
-    'const client = await import(pathToFileURL(process.env.COURSEMIRROR_CREDENTIAL_CLIENT).href);',
-    'const adapter = await import(pathToFileURL(process.env.COURSEMIRROR_AUTH_ADAPTER).href);',
-    "const response = await client.requestCredentialHelper('probe', adapter.STONY_BROOK_CREDENTIAL_TARGET, { appRoot: process.env.COURSEMIRROR_PACKAGED_APP });",
+    'const client = await import(pathToFileURL(process.env.COURSESTOW_CREDENTIAL_CLIENT).href);',
+    'const adapter = await import(pathToFileURL(process.env.COURSESTOW_AUTH_ADAPTER).href);',
+    "const response = await client.requestCredentialHelper('probe', adapter.STONY_BROOK_CREDENTIAL_TARGET, { appRoot: process.env.COURSESTOW_PACKAGED_APP });",
     'console.log(JSON.stringify(response));'
   ].join(' ');
   const credentialTransport = await run(privateNode, ['--input-type=module', '-e', credentialTransportProbe], {
     cwd: unrelatedCwd,
     env: {
       ...windowsHostEnv,
-      COURSEMIRROR_CREDENTIAL_CLIENT: path.join(appRoot, 'src', 'credential-helper-client.mjs'),
-      COURSEMIRROR_AUTH_ADAPTER: path.join(appRoot, 'src', 'auth-adapters.mjs'),
-      COURSEMIRROR_PACKAGED_APP: appRoot
+      COURSESTOW_CREDENTIAL_CLIENT: path.join(appRoot, 'src', 'credential-helper-client.mjs'),
+      COURSESTOW_AUTH_ADAPTER: path.join(appRoot, 'src', 'auth-adapters.mjs'),
+      COURSESTOW_PACKAGED_APP: appRoot
     },
     label: 'packaged private-Node credential-helper named-pipe probe'
   });
@@ -360,7 +360,7 @@ try {
 
   const controlPanelSelfTestFile = path.join(temp, 'control-panel-self-test.json');
   const controlPanelEnv = { ...windowsHostEnv };
-  delete controlPanelEnv.COURSEMIRROR_DEV_BUNDLE_ROOT;
+  delete controlPanelEnv.COURSESTOW_DEV_BUNDLE_ROOT;
   const controlPanelSelfTest = await run(controlPanel, ['--self-test', controlPanelSelfTestFile], {
     cwd: unrelatedCwd,
     env: controlPanelEnv,
@@ -374,9 +374,9 @@ try {
   const controlPanelResult = JSON.parse(await fs.readFile(controlPanelSelfTestFile, 'utf8'));
   const packagedLauncherModule = path.join(appRoot, 'src', 'launcher.mjs');
   assert.equal(controlPanelResult.schemaVersion, 1);
-  assert.equal(controlPanelResult.productName, 'CourseMirror');
-  assert.equal(controlPanelResult.executableName, 'CourseMirror.exe');
-  assert.equal(controlPanelResult.mutexName, 'Local\\CourseMirror.ControlPanel');
+  assert.equal(controlPanelResult.productName, 'CourseStow');
+  assert.equal(controlPanelResult.executableName, 'CourseStow.exe');
+  assert.equal(controlPanelResult.mutexName, 'Local\\CourseStow.ControlPanel');
   assert.equal(controlPanelResult.legacyMutexCompatibility, true);
   assert.equal(controlPanelResult.applicationRootContainsSpaces, true, 'packaged GUI root must exercise path handling with spaces');
   assert.equal(await canonicalWindowsPath(controlPanelResult.applicationRoot), await canonicalWindowsPath(portableRoot));
@@ -510,8 +510,8 @@ try {
     cwd: unrelatedCwd,
     env: {
       ...controlPanelEnv,
-      COURSEMIRROR_DATA_DIR: scheduledDataDir,
-      COURSEMIRROR_MIRROR_DIR: scheduledMirrorDir
+      COURSESTOW_DATA_DIR: scheduledDataDir,
+      COURSESTOW_MIRROR_DIR: scheduledMirrorDir
     },
     label: 'packaged scheduled-run entry point'
   });
@@ -533,10 +533,10 @@ try {
   await requireFile(packagedPlaywrightModule, 'packaged Playwright module');
   const browserLaunchProbe = [
     "import { pathToFileURL } from 'node:url';",
-    "const detector = await import(pathToFileURL(process.env.COURSEMIRROR_PACKAGED_BROWSER_MODULE).href);",
-    "const playwright = await import(pathToFileURL(process.env.COURSEMIRROR_PACKAGED_PLAYWRIGHT_MODULE).href);",
+    "const detector = await import(pathToFileURL(process.env.COURSESTOW_PACKAGED_BROWSER_MODULE).href);",
+    "const playwright = await import(pathToFileURL(process.env.COURSESTOW_PACKAGED_PLAYWRIGHT_MODULE).href);",
     'const detected = detector.findChromiumExecutable();',
-    'const profileDir = process.env.COURSEMIRROR_BROWSER_PROFILE_DIR;',
+    'const profileDir = process.env.COURSESTOW_BROWSER_PROFILE_DIR;',
     'let context;',
     'try {',
     '  context = await playwright.chromium.launchPersistentContext(profileDir, {',
@@ -545,14 +545,14 @@ try {
     "    args: ['--no-first-run', '--no-default-browser-check']",
     '  });',
     '  const page = context.pages()[0] || await context.newPage();',
-    "  await page.goto('data:text/html,<title>CourseMirror Bundle Smoke</title><p>ok</p>');",
+    "  await page.goto('data:text/html,<title>CourseStow Bundle Smoke</title><p>ok</p>');",
     '  const pageTitle = await page.title();',
-    "  if (pageTitle !== 'CourseMirror Bundle Smoke') throw new Error(`Unexpected page title: ${pageTitle}`);",
+    "  if (pageTitle !== 'CourseStow Bundle Smoke') throw new Error(`Unexpected page title: ${pageTitle}`);",
     '  console.log(JSON.stringify({',
     '    browserName: detected.name,',
     '    browserPath: detected.path,',
     '    nodeExecutable: process.execPath,',
-    '    playwrightModule: process.env.COURSEMIRROR_PACKAGED_PLAYWRIGHT_MODULE,',
+    '    playwrightModule: process.env.COURSESTOW_PACKAGED_PLAYWRIGHT_MODULE,',
     '    profileDir,',
     '    pageTitle,',
     '    pageUrl: page.url()',
@@ -565,9 +565,9 @@ try {
     cwd: unrelatedCwd,
     env: {
       ...browserEnv,
-      COURSEMIRROR_PACKAGED_BROWSER_MODULE: packagedBrowserModule,
-      COURSEMIRROR_PACKAGED_PLAYWRIGHT_MODULE: packagedPlaywrightModule,
-      COURSEMIRROR_BROWSER_PROFILE_DIR: browserProfileDir
+      COURSESTOW_PACKAGED_BROWSER_MODULE: packagedBrowserModule,
+      COURSESTOW_PACKAGED_PLAYWRIGHT_MODULE: packagedPlaywrightModule,
+      COURSESTOW_BROWSER_PROFILE_DIR: browserProfileDir
     },
     label: 'packaged headless browser launch'
   });
@@ -581,7 +581,7 @@ try {
   assert.equal(await canonicalWindowsPath(browserResult.nodeExecutable), await canonicalWindowsPath(privateNode), 'browser probe must run with packaged private Node');
   assert.equal(await canonicalWindowsPath(browserResult.playwrightModule), await canonicalWindowsPath(packagedPlaywrightModule), 'browser probe must load packaged Playwright');
   assert.equal(await canonicalWindowsPath(browserResult.profileDir), await canonicalWindowsPath(browserProfileDir), 'browser must use the explicit test-owned profile');
-  assert.equal(browserResult.pageTitle, 'CourseMirror Bundle Smoke');
+  assert.equal(browserResult.pageTitle, 'CourseStow Bundle Smoke');
   assert.match(browserResult.pageUrl, /^data:text\/html,/);
   assert.deepEqual(await snapshotTree(portableRoot), before, 'packaged browser launch must not modify the application bundle');
   await fs.rm(browserProfileDir, { recursive: true, force: true });
@@ -603,7 +603,7 @@ try {
     path.join(appRoot, 'BrowserProfile'),
     path.join(appRoot, 'state'),
     path.join(appRoot, 'logs'),
-    path.join(appRoot, 'CourseMirror'),
+    path.join(appRoot, 'CourseStow'),
     path.join(portableRoot, 'config.json'),
     path.join(portableRoot, 'BrowserProfile'),
     path.join(portableRoot, 'state'),
@@ -616,7 +616,7 @@ try {
     'app/src/product-migration.mjs',
     'app/src/runtime-paths.mjs'
   ]);
-  for (const relative of packagedFiles.filter(value => value.startsWith(`app${path.sep}src${path.sep}`) || /^(?:bundle-manifest\.json|CourseMirror\.cmd)$/i.test(value))) {
+  for (const relative of packagedFiles.filter(value => value.startsWith(`app${path.sep}src${path.sep}`) || /^(?:bundle-manifest\.json|CourseStow\.cmd)$/i.test(value))) {
     const text = await fs.readFile(path.join(portableRoot, relative), 'utf8');
     if (/Brightspace Sync|BrightspaceSync|brightspace-sync/.test(text)) {
       const portableName = relative.replaceAll(path.sep, '/');

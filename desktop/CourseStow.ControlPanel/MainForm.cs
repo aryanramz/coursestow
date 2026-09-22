@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal sealed class MainForm : Form
     {
@@ -54,7 +54,7 @@ namespace CourseMirror.ControlPanel
             _backend = backend;
             _settingsDialog = settingsDialog ?? new SettingsDialogService();
             _updateCheckFactory = updateCheckFactory ?? new DisabledUpdateCheckServiceFactory();
-            Text = "CourseMirror";
+            Text = "CourseStow";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(520, 436);
             MinimumSize = new Size(536, 475);
@@ -69,7 +69,7 @@ namespace CourseMirror.ControlPanel
             var title = new Label
             {
                 AutoSize = true,
-                Text = "CourseMirror",
+                Text = "CourseStow",
                 Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold, GraphicsUnit.Point),
                 ForeColor = Color.FromArgb(34, 54, 74),
                 Location = new Point(24, 20)
@@ -198,7 +198,7 @@ namespace CourseMirror.ControlPanel
                     if (!_browserReady && !_closing)
                     {
                         SetStatus("Browser Required", Color.DarkGoldenrod);
-                        _activity.Text = "Choose or install a compatible Chromium browser. CourseMirror remains available for configuration.";
+                        _activity.Text = "Choose or install a compatible Chromium browser. CourseStow remains available for configuration.";
                         await OpenSettingsAsync(false);
                     }
                 }
@@ -209,7 +209,7 @@ namespace CourseMirror.ControlPanel
             {
                 if (_closing) return;
                 SetStatus("Error", Color.Firebrick);
-                _activity.Text = "The packaged backend could not be started. Rebuild or repair CourseMirror.";
+                _activity.Text = "The packaged backend could not be started. Rebuild or repair CourseStow.";
                 SetSyncButtons(false);
             }
         }
@@ -246,7 +246,7 @@ namespace CourseMirror.ControlPanel
                     else if (!String.IsNullOrWhiteSpace(_backendStatus.activeOperation))
                     {
                         SetStatus("Running " + _backendStatus.activeOperation, Color.DarkGoldenrod);
-                        if (updateActivity) _activity.Text = "Another CourseMirror operation is currently active.";
+                        if (updateActivity) _activity.Text = "Another CourseStow operation is currently active.";
                     }
                     else
                     {
@@ -255,7 +255,7 @@ namespace CourseMirror.ControlPanel
                         {
                             _activity.Text = _backendStatus.configured
                                 ? "Ready."
-                                : "Setup is not complete. Open Settings to configure CourseMirror.";
+                                : "Setup is not complete. Open Settings to configure CourseStow.";
                         }
                     }
                 }
@@ -313,14 +313,14 @@ namespace CourseMirror.ControlPanel
             {
                 _operationStarting = false;
                 SetStatus("Running " + _backendStatus.activeOperation, Color.DarkGoldenrod);
-                _activity.Text = "Another CourseMirror operation is currently active.";
+                _activity.Text = "Another CourseStow operation is currently active.";
                 UpdateSyncButtons();
                 return false;
             }
             if (!_backendStatus.configured)
             {
                 _operationStarting = false;
-                _activity.Text = "Setup is not complete. Open Settings to configure CourseMirror.";
+                _activity.Text = "Setup is not complete. Open Settings to configure CourseStow.";
                 UpdateSyncButtons();
                 return false;
             }
@@ -395,7 +395,7 @@ namespace CourseMirror.ControlPanel
             {
                 _operationStarting = false;
                 SetStatus("Running " + _backendStatus.activeOperation, Color.DarkGoldenrod);
-                _activity.Text = "Another CourseMirror operation is currently active.";
+                _activity.Text = "Another CourseStow operation is currently active.";
                 UpdateSyncButtons();
                 return false;
             }
@@ -492,7 +492,7 @@ namespace CourseMirror.ControlPanel
                         {
                             _activity.Text = String.IsNullOrWhiteSpace(_backendStatus.activeOperation)
                                 ? "Settings saved. Ready."
-                                : "Settings saved. Another CourseMirror operation is currently active.";
+                                : "Settings saved. Another CourseStow operation is currently active.";
                         }
                     }
                 }
@@ -605,7 +605,7 @@ namespace CourseMirror.ControlPanel
             _trustedReleaseUrl = null;
             _viewReleaseLink.Visible = false;
             _updateMessage.Text = result.Outcome == UpdateCheckOutcome.UpToDate
-                ? "CourseMirror is up to date."
+                ? "CourseStow is up to date."
                 : "Unable to check right now.";
         }
 
@@ -630,14 +630,14 @@ namespace CourseMirror.ControlPanel
         {
             if (_backendStatus == null)
             {
-                MessageBox.Show("Runtime paths are not available yet.", "CourseMirror", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Runtime paths are not available yet.", "CourseStow", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             string directory = mirror ? _backendStatus.mirrorDir : _backendStatus.logsDir;
             if (!Directory.Exists(directory))
             {
                 string label = mirror ? "mirror" : "logs";
-                MessageBox.Show("The " + label + " directory does not exist yet.", "CourseMirror", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("The " + label + " directory does not exist yet.", "CourseStow", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -653,7 +653,7 @@ namespace CourseMirror.ControlPanel
             }
             catch (Exception)
             {
-                MessageBox.Show("Windows could not open that directory.", "CourseMirror", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Windows could not open that directory.", "CourseStow", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -710,7 +710,7 @@ namespace CourseMirror.ControlPanel
                 return;
             }
             args.Cancel = true;
-            MessageBox.Show("A sync operation is still running. Keep CourseMirror open until it finishes.", "CourseMirror", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("A sync operation is still running. Keep CourseStow open until it finishes.", "CourseStow", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnFormClosed(object sender, FormClosedEventArgs args)

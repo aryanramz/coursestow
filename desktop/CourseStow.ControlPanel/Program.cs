@@ -1,14 +1,14 @@
 using System;
 using System.Threading;
 using System.Windows.Forms;
-using CourseMirror.Security;
+using CourseStow.Security;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal static class Program
     {
-        internal const string MutexName = CourseMirrorProcessIdentity.ControlPanelMutexName;
-        internal const string LegacyMutexName = CourseMirrorProcessIdentity.LegacyControlPanelMutexName;
+        internal const string MutexName = CourseStowProcessIdentity.ControlPanelMutexName;
+        internal const string LegacyMutexName = CourseStowProcessIdentity.LegacyControlPanelMutexName;
 
         [STAThread]
         private static int Main(string[] args)
@@ -21,12 +21,12 @@ namespace CourseMirror.ControlPanel
                 return InstallerMaintenanceSelfTest.Run(args[1]);
 
             bool installerActive;
-            try { installerActive = CourseMirrorProcessIdentity.IsMutexActive(CourseMirrorProcessIdentity.InstallerLifecycleMutexName); }
+            try { installerActive = CourseStowProcessIdentity.IsMutexActive(CourseStowProcessIdentity.InstallerLifecycleMutexName); }
             catch { return 4; }
             if (installerActive)
             {
                 if (!IsScheduledRun(args))
-                    MessageBox.Show("CourseMirror is being installed or repaired. Try again when setup finishes.", "CourseMirror", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("CourseStow is being installed or repaired. Try again when setup finishes.", "CourseStow", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return 4;
             }
 
@@ -46,7 +46,7 @@ namespace CourseMirror.ControlPanel
             {
                 if (!ownsMutex || !ownsLegacyMutex)
                 {
-                    MessageBox.Show("CourseMirror is already open.", "CourseMirror", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("CourseStow is already open.", "CourseStow", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return 0;
                 }
 

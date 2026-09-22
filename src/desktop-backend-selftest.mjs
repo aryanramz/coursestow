@@ -45,7 +45,7 @@ function run(command, args, options) {
   });
 }
 
-const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-desktop-backend-'));
+const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-desktop-backend-'));
 try {
   const dataDir = path.join(temp, 'User Data');
   const mirrorDir = path.join(temp, 'Chosen Mirror');
@@ -53,8 +53,8 @@ try {
     appRoot: ROOT,
     env: {
       ...process.env,
-      COURSEMIRROR_DATA_DIR: dataDir,
-      COURSEMIRROR_MIRROR_DIR: mirrorDir
+      COURSESTOW_DATA_DIR: dataDir,
+      COURSESTOW_MIRROR_DIR: mirrorDir
     }
   };
   const paths = resolveRuntimePaths(runtime);
@@ -82,7 +82,7 @@ try {
     lastSuccessfulSync: completedAt,
     sensitiveIgnoredValue: 'not-returned'
   }));
-  await fs.writeFile(path.join(paths.lockDir, '.coursemirror.lock'), JSON.stringify({
+  await fs.writeFile(path.join(paths.lockDir, '.coursestow.lock'), JSON.stringify({
     mode: 'quick',
     token: 'not-returned',
     pid: process.pid,
@@ -94,9 +94,9 @@ try {
   assert.equal(running.activeOperation, 'Quick Sync');
   assert.equal(running.lastSync, completedAt);
   assertNoSensitiveFields(running);
-  await fs.rm(path.join(paths.lockDir, '.coursemirror.lock'), { force: true });
+  await fs.rm(path.join(paths.lockDir, '.coursestow.lock'), { force: true });
 
-  await fs.writeFile(path.join(paths.lockDir, '.coursemirror.lock'), JSON.stringify({
+  await fs.writeFile(path.join(paths.lockDir, '.coursestow.lock'), JSON.stringify({
     mode: 'full',
     pid: 2147483647,
     hostname: os.hostname(),
@@ -106,21 +106,21 @@ try {
   assert.equal(deadSameHost.status, 'ready');
   assert.equal(deadSameHost.activeOperation, null);
 
-  await fs.writeFile(path.join(paths.lockDir, '.coursemirror.lock'), 'malformed lock');
+  await fs.writeFile(path.join(paths.lockDir, '.coursestow.lock'), 'malformed lock');
   const conservativelyRunning = await getDesktopStatus({ runtime });
   assert.equal(conservativelyRunning.status, 'running');
-  assert.equal(conservativelyRunning.activeOperation, 'CourseMirror operation');
+  assert.equal(conservativelyRunning.activeOperation, 'CourseStow operation');
   const oldTime = new Date('2000-01-01T00:00:00.000Z');
-  await fs.utimes(path.join(paths.lockDir, '.coursemirror.lock'), oldTime, oldTime);
+  await fs.utimes(path.join(paths.lockDir, '.coursestow.lock'), oldTime, oldTime);
   const expiredMalformed = await getDesktopStatus({ runtime });
   assert.equal(expiredMalformed.status, 'ready');
   assert.equal(expiredMalformed.activeOperation, null);
-  await fs.rm(path.join(paths.lockDir, '.coursemirror.lock'), { force: true });
+  await fs.rm(path.join(paths.lockDir, '.coursestow.lock'), { force: true });
 
   const conflictHome = path.join(temp, 'Conflict Home');
   const conflictLocal = path.join(conflictHome, 'AppData', 'Local');
   const conflictOld = path.join(conflictLocal, 'Brightspace Sync');
-  const conflictNew = path.join(conflictLocal, 'CourseMirror');
+  const conflictNew = path.join(conflictLocal, 'CourseStow');
   await fs.mkdir(conflictOld, { recursive: true });
   await fs.mkdir(conflictNew, { recursive: true });
   await fs.writeFile(path.join(conflictOld, 'config.json'), '{"old":true}');
@@ -137,7 +137,7 @@ try {
   assert.equal(conflictStatus.configured, false);
   assert.match(conflictStatus.attention, /manual review is required/i);
   assert.match(conflictStatus.attention, /Brightspace Sync/);
-  assert.match(conflictStatus.attention, /CourseMirror/);
+  assert.match(conflictStatus.attention, /CourseStow/);
 
   const launched = await run(process.execPath, [path.join(ROOT, 'src', 'launcher.mjs'), 'status', '--json'], {
     cwd: temp,
@@ -157,8 +157,8 @@ try {
     appRoot: ROOT,
     env: {
       ...process.env,
-      COURSEMIRROR_DATA_DIR: unsafeDataDir,
-      COURSEMIRROR_MIRROR_DIR: path.join(temp, 'Unsafe URL Mirror')
+      COURSESTOW_DATA_DIR: unsafeDataDir,
+      COURSESTOW_MIRROR_DIR: path.join(temp, 'Unsafe URL Mirror')
     }
   };
   const unsafePaths = resolveRuntimePaths(unsafeRuntime);

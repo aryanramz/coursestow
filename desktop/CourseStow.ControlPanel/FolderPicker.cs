@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Windows.Forms;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal interface IFolderPicker
     {

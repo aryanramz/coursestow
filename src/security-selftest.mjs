@@ -4,16 +4,16 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageMetadata = JSON.parse(await fs.readFile(path.join(ROOT, 'package.json'), 'utf8'));
-if (packageMetadata.name !== 'coursemirror' || packageMetadata.version !== '3.0.0') {
-  throw new Error('Package identity must be CourseMirror 3.0.0 for Windows v3 finalization.');
+if (packageMetadata.name !== 'coursestow' || packageMetadata.version !== '3.0.0') {
+  throw new Error('Package identity must be CourseStow 3.0.0 for Windows v3 finalization.');
 }
-if (packageMetadata.repository?.url !== 'https://github.com/aryanramz/coursemirror.git') {
-  throw new Error('Package repository metadata must use the canonical CourseMirror repository.');
+if (packageMetadata.repository?.url !== 'https://github.com/aryanramz/coursestow.git') {
+  throw new Error('Package repository metadata must use the canonical CourseStow repository.');
 }
 const readme = await fs.readFile(path.join(ROOT, 'README.md'), 'utf8');
-const requiredDisclaimer = 'CourseMirror is an unofficial third-party utility for D2L Brightspace. It is not affiliated with or endorsed by D2L Corporation.';
-if (!readme.includes(requiredDisclaimer)) throw new Error('README is missing the CourseMirror third-party disclaimer.');
-if (!readme.includes('CourseMirror — for D2L Brightspace')) throw new Error('README is missing the CourseMirror tagline.');
+const requiredDisclaimer = 'CourseStow is an unofficial third-party utility for D2L Brightspace. It is not affiliated with or endorsed by D2L Corporation.';
+if (!readme.includes(requiredDisclaimer)) throw new Error('README is missing the CourseStow third-party disclaimer.');
+if (!readme.includes('CourseStow — for D2L Brightspace')) throw new Error('README is missing the CourseStow tagline.');
 if (/github\.com\/aryanramz\/brightspace-sync/i.test(readme)) throw new Error('README still uses the former repository URL.');
 const brightspaceUrlSource = await fs.readFile(path.join(ROOT, 'src', 'brightspace-url.mjs'), 'utf8');
 if (!brightspaceUrlSource.includes('normalizeBrightspaceBaseUrl')) {
@@ -60,6 +60,7 @@ const secretPatterns = [
   { name: 'institution email address', re: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.edu\b/i },
   { name: 'student-ID-like field', re: /\b(?:student|empl|banner)[ _-]?(?:id|number)\b.{0,24}[=: ]+\d{7,12}\b/i }
 ];
+const formerProductPattern = /course\s*mirror/i;
 
 async function walk(dir) {
   const files = [];
@@ -73,10 +74,17 @@ async function walk(dir) {
 }
 
 for (const file of await walk(ROOT)) {
+  const relative = path.relative(ROOT, file);
+  if (formerProductPattern.test(relative)) {
+    throw new Error(`${relative} still uses the former product name.`);
+  }
   let text;
   try { text = await fs.readFile(file, 'utf8'); } catch { continue; }
+  if (formerProductPattern.test(text)) {
+    throw new Error(`${relative} still references the former product name.`);
+  }
   for (const pattern of secretPatterns) {
-    if (pattern.re.test(text)) throw new Error(`${path.relative(ROOT, file)} contains ${pattern.name}.`);
+    if (pattern.re.test(text)) throw new Error(`${relative} contains ${pattern.name}.`);
   }
 }
 

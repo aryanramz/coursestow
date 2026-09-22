@@ -1,5 +1,5 @@
 export const STONY_BROOK_ADAPTER_ID = 'stony-brook';
-export const STONY_BROOK_CREDENTIAL_TARGET = 'CourseMirror:institution:stony-brook';
+export const STONY_BROOK_CREDENTIAL_TARGET = 'CourseStow:institution:stony-brook';
 export const LEGACY_STONY_BROOK_CREDENTIAL_TARGET = 'Brightspace Sync:institution:stony-brook';
 
 const AUTHENTICATED_SELECTOR = '[data-prl*="/courseSelector/"], [data-cprl*="/courseSelector/"], a[href*="/d2l/home/"]';

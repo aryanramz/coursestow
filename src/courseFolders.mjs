@@ -21,7 +21,7 @@ export function canonicalCourseBaseName(name, id) {
   return safeName(value, `Course ${id}`);
 }
 
-export function canonicalCourseMirrorDir(course) {
+export function canonicalCourseStowDir(course) {
   return `${canonicalCourseBaseName(course?.name, course?.id)} [${course?.id}]`;
 }
 
@@ -71,7 +71,7 @@ async function mergeTree(source, target) {
 
 export async function resolveCourseDirectory(outputDir, course) {
   const id = String(course.id);
-  const canonicalName = canonicalCourseMirrorDir(course);
+  const canonicalName = canonicalCourseStowDir(course);
   const canonicalPath = path.join(outputDir, canonicalName);
   const idPattern = new RegExp(`\\[${escapeRegex(id)}\\]$`);
 

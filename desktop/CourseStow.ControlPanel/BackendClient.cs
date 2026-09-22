@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal sealed class BackendPaths
     {
@@ -19,7 +19,7 @@ namespace CourseMirror.ControlPanel
 
         internal static BackendPaths Resolve()
         {
-            string root = Environment.GetEnvironmentVariable("COURSEMIRROR_DEV_BUNDLE_ROOT");
+            string root = Environment.GetEnvironmentVariable("COURSESTOW_DEV_BUNDLE_ROOT");
             if (String.IsNullOrWhiteSpace(root))
                 root = Environment.GetEnvironmentVariable("BRIGHTSPACE_SYNC_DEV_BUNDLE_ROOT");
             if (String.IsNullOrWhiteSpace(root))
@@ -31,9 +31,9 @@ namespace CourseMirror.ControlPanel
             string launcher = Path.Combine(app, "src", "launcher.mjs");
 
             if (!File.Exists(node))
-                throw new FileNotFoundException("The private CourseMirror runtime is missing. Rebuild or repair the application.", node);
+                throw new FileNotFoundException("The private CourseStow runtime is missing. Rebuild or repair the application.", node);
             if (!File.Exists(launcher))
-                throw new FileNotFoundException("The CourseMirror backend is missing. Rebuild or repair the application.", launcher);
+                throw new FileNotFoundException("The CourseStow backend is missing. Rebuild or repair the application.", launcher);
 
             return new BackendPaths
             {
@@ -292,7 +292,7 @@ namespace CourseMirror.ControlPanel
                 RedirectStandardError = true,
                 RedirectStandardInput = redirectStandardInput
             };
-            startInfo.EnvironmentVariables["COURSEMIRROR_GUI"] = "1";
+            startInfo.EnvironmentVariables["COURSESTOW_GUI"] = "1";
             return startInfo;
         }
 
@@ -312,7 +312,7 @@ namespace CourseMirror.ControlPanel
                 process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { stdout.AppendLine(e.Data); };
                 process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e) { stderr.AppendLine(e.Data); };
 
-                if (!process.Start()) throw new InvalidOperationException("The CourseMirror backend did not start.");
+                if (!process.Start()) throw new InvalidOperationException("The CourseStow backend did not start.");
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
                 if (standardInput != null)
@@ -335,7 +335,7 @@ namespace CourseMirror.ControlPanel
         {
             BackendProcessResult result = await RunAsync("status", "--json");
             if (result.ExitCode != 0)
-                throw new BackendCommandException("The CourseMirror backend could not report its status.", result.ExitCode);
+                throw new BackendCommandException("The CourseStow backend could not report its status.", result.ExitCode);
 
             string jsonLine = LastNonEmptyLine(result.StandardOutput);
             BackendStatus status;
@@ -345,13 +345,13 @@ namespace CourseMirror.ControlPanel
             }
             catch (Exception error)
             {
-                throw new InvalidDataException("The CourseMirror backend returned an invalid status response.", error);
+                throw new InvalidDataException("The CourseStow backend returned an invalid status response.", error);
             }
 
             if (status == null || status.schemaVersion != SupportedStatusSchemaVersion)
-                throw new InvalidDataException("The CourseMirror backend status schema is not supported.");
+                throw new InvalidDataException("The CourseStow backend status schema is not supported.");
             if (String.IsNullOrWhiteSpace(status.mirrorDir) || String.IsNullOrWhiteSpace(status.logsDir) || String.IsNullOrWhiteSpace(status.dataDir))
-                throw new InvalidDataException("The CourseMirror backend status response is incomplete.");
+                throw new InvalidDataException("The CourseStow backend status response is incomplete.");
             return status;
         }
 
@@ -359,7 +359,7 @@ namespace CourseMirror.ControlPanel
         {
             BackendProcessResult result = await RunAsync("settings", "--json");
             if (result.ExitCode != 0)
-                throw new BackendCommandException("The CourseMirror backend could not load settings.", result.ExitCode);
+                throw new BackendCommandException("The CourseStow backend could not load settings.", result.ExitCode);
 
             DesktopSettings settings = DeserializeResponse<DesktopSettings>(result.StandardOutput, "settings");
             ValidateSettings(settings);
@@ -372,7 +372,7 @@ namespace CourseMirror.ControlPanel
             string payload = _json.Serialize(request);
             BackendProcessResult result = await RunProcessAsync("settings", payload, "save", "--json");
             if (result.ExitCode != 0)
-                throw new BackendCommandException("The CourseMirror backend could not save settings.", result.ExitCode);
+                throw new BackendCommandException("The CourseStow backend could not save settings.", result.ExitCode);
 
             SettingsSaveResponse response = ParseSettingsSaveResponse(result.StandardOutput);
             return response;
@@ -382,7 +382,7 @@ namespace CourseMirror.ControlPanel
         {
             BackendProcessResult result = await RunAsync("browser", "--json");
             if (result.ExitCode != 0)
-                throw new BackendCommandException("The CourseMirror backend could not inspect compatible browsers.", result.ExitCode);
+                throw new BackendCommandException("The CourseStow backend could not inspect compatible browsers.", result.ExitCode);
             return ParseBrowserResponse(result.StandardOutput);
         }
 
@@ -403,9 +403,9 @@ namespace CourseMirror.ControlPanel
                 throw new BackendCommandException("The selected setup could not be imported.", result.ExitCode);
             SourceImportResponse response = DeserializeResponse<SourceImportResponse>(result.StandardOutput, "source import");
             if (response == null || response.schemaVersion != SupportedStatusSchemaVersion)
-                throw new InvalidDataException("The CourseMirror source-import schema is not supported.");
+                throw new InvalidDataException("The CourseStow source-import schema is not supported.");
             if (!response.ok && (response.errors == null || response.errors.Length == 0))
-                throw new InvalidDataException("The CourseMirror backend returned an incomplete source-import response.");
+                throw new InvalidDataException("The CourseStow backend returned an incomplete source-import response.");
             return response;
         }
 
@@ -414,7 +414,7 @@ namespace CourseMirror.ControlPanel
             DesktopBrowserSettings browser = DeserializeResponse<DesktopBrowserSettings>(standardOutput, "browser");
             if (browser == null || browser.schemaVersion != SupportedStatusSchemaVersion
                 || !String.Equals(browser.engine, "chromium", StringComparison.Ordinal))
-                throw new InvalidDataException("The CourseMirror browser response is not supported.");
+                throw new InvalidDataException("The CourseStow browser response is not supported.");
             return browser;
         }
 
@@ -427,14 +427,14 @@ namespace CourseMirror.ControlPanel
         {
             SettingsSaveResponse response = DeserializeResponse<SettingsSaveResponse>(standardOutput, "settings save");
             if (response == null || response.schemaVersion != SupportedStatusSchemaVersion)
-                throw new InvalidDataException("The CourseMirror backend settings-save schema is not supported.");
+                throw new InvalidDataException("The CourseStow backend settings-save schema is not supported.");
             if (response.ok)
             {
                 ValidateSettings(response.settings);
             }
             else if (response.errors == null || response.errors.Length == 0)
             {
-                throw new InvalidDataException("The CourseMirror backend returned an incomplete settings validation response.");
+                throw new InvalidDataException("The CourseStow backend returned an incomplete settings validation response.");
             }
             return response;
         }
@@ -463,19 +463,19 @@ namespace CourseMirror.ControlPanel
             }
             catch (Exception error)
             {
-                throw new InvalidDataException("The CourseMirror backend returned an invalid " + label + " response.", error);
+                throw new InvalidDataException("The CourseStow backend returned an invalid " + label + " response.", error);
             }
         }
 
         private static void ValidateSettings(DesktopSettings settings)
         {
             if (settings == null || settings.schemaVersion != SupportedStatusSchemaVersion)
-                throw new InvalidDataException("The CourseMirror backend settings schema is not supported.");
+                throw new InvalidDataException("The CourseStow backend settings schema is not supported.");
             if (String.IsNullOrWhiteSpace(settings.mirrorDir) || settings.drive == null || settings.authentication == null || settings.schedule == null || settings.browser == null)
-                throw new InvalidDataException("The CourseMirror backend settings response is incomplete.");
+                throw new InvalidDataException("The CourseStow backend settings response is incomplete.");
             if (settings.schedule.intervalHours < 1 || settings.schedule.intervalHours > 24
                 || settings.schedule.fullIntervalDays < 1 || settings.schedule.fullIntervalDays > 30)
-                throw new InvalidDataException("The CourseMirror backend returned invalid scheduling settings.");
+                throw new InvalidDataException("The CourseStow backend returned invalid scheduling settings.");
         }
 
         internal static string LastNonEmptyLine(string value)

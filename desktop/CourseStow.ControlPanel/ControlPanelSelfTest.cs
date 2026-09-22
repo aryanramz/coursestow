@@ -1,4 +1,4 @@
-using CourseMirror.Security;
+using CourseStow.Security;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal static class ControlPanelSelfTest
     {
@@ -711,7 +711,7 @@ namespace CourseMirror.ControlPanel
                     && syntheticServiceA.ManagedTaskName != syntheticServiceB.ManagedTaskName
                     && !syntheticTaskLibrary.ContainsKey(syntheticServiceA.ManagedTaskName)
                     && syntheticTaskLibrary[syntheticServiceB.ManagedTaskName] == "user-b-task";
-                bool taskIdentityAndArgumentsAreFixed = WindowsTaskSchedulerService.FolderPath == @"\CourseMirror"
+                bool taskIdentityAndArgumentsAreFixed = WindowsTaskSchedulerService.FolderPath == @"\CourseStow"
                     && WindowsTaskSchedulerService.LegacyFolderPath == @"\Brightspace Sync"
                     && WindowsTaskSchedulerService.TaskArguments == "--scheduled-run"
                     && !WindowsTaskSchedulerService.TaskArguments.Contains("password")
@@ -767,7 +767,7 @@ namespace CourseMirror.ControlPanel
                 bool initialButtonsEnabled;
                 bool externalLockStartedDisablesButtons;
                 bool externalLockFinishedReturnsReady;
-                string lockFile = Path.Combine(status.dataDir, "state", ".coursemirror.lock");
+                string lockFile = Path.Combine(status.dataDir, "state", ".coursestow.lock");
                 using (var form = new MainForm(backend, MainForm.StatusRefreshIntervalMilliseconds))
                 {
                     SynchronizationContext.SetSynchronizationContext(null);

@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace CourseMirror.Security
+namespace CourseStow.Security
 {
     internal sealed class CredentialRecord : IDisposable
     {
@@ -39,7 +39,7 @@ namespace CourseMirror.Security
 
     internal sealed class WindowsCredentialStore : ICredentialStore
     {
-        internal const string StonyBrookTarget = "CourseMirror:institution:stony-brook";
+        internal const string StonyBrookTarget = "CourseStow:institution:stony-brook";
         internal const string LegacyStonyBrookTarget = "Brightspace Sync:institution:stony-brook";
         private const uint CredentialTypeGeneric = 1;
         private const uint PersistLocalMachine = 2;

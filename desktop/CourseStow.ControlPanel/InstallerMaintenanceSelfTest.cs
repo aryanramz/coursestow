@@ -1,4 +1,4 @@
-using CourseMirror.Security;
+using CourseStow.Security;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal static class InstallerMaintenanceSelfTest
     {
@@ -32,15 +32,15 @@ namespace CourseMirror.ControlPanel
                 Require(InstallerMaintenanceCommand.RunPreflight(idle) == InstallerMaintenanceExitCode.Success, "Idle preflight did not succeed.");
 
                 var canonicalBusy = new FakeInstallerActivityProbe();
-                canonicalBusy.ActiveMutexes.Add(CourseMirrorProcessIdentity.ControlPanelMutexName);
+                canonicalBusy.ActiveMutexes.Add(CourseStowProcessIdentity.ControlPanelMutexName);
                 Require(InstallerMaintenanceCommand.RunPreflight(canonicalBusy) == InstallerMaintenanceExitCode.Busy, "Canonical GUI mutex was not busy.");
 
                 var legacyBusy = new FakeInstallerActivityProbe();
-                legacyBusy.ActiveMutexes.Add(CourseMirrorProcessIdentity.LegacyControlPanelMutexName);
+                legacyBusy.ActiveMutexes.Add(CourseStowProcessIdentity.LegacyControlPanelMutexName);
                 Require(InstallerMaintenanceCommand.RunPreflight(legacyBusy) == InstallerMaintenanceExitCode.Busy, "Legacy GUI mutex was not busy.");
 
                 var helperBusy = new FakeInstallerActivityProbe();
-                helperBusy.ActiveMutexes.Add(CourseMirrorProcessIdentity.CredentialHelperMutexName);
+                helperBusy.ActiveMutexes.Add(CourseStowProcessIdentity.CredentialHelperMutexName);
                 Require(InstallerMaintenanceCommand.RunPreflight(helperBusy) == InstallerMaintenanceExitCode.Busy, "Credential-helper mutex was not busy.");
 
                 var activeLock = new FakeInstallerActivityProbe { ActiveOperation = "Scheduled Sync" };
@@ -54,14 +54,14 @@ namespace CourseMirror.ControlPanel
 
                 stage = "operating-system mutex identity";
                 foreach (string mutexName in new[] {
-                    CourseMirrorProcessIdentity.ControlPanelMutexName,
-                    CourseMirrorProcessIdentity.LegacyControlPanelMutexName,
-                    CourseMirrorProcessIdentity.CredentialHelperMutexName
+                    CourseStowProcessIdentity.ControlPanelMutexName,
+                    CourseStowProcessIdentity.LegacyControlPanelMutexName,
+                    CourseStowProcessIdentity.CredentialHelperMutexName
                 })
                 {
                     using (var held = new Mutex(false, mutexName))
                     {
-                        Require(CourseMirrorProcessIdentity.IsMutexActive(mutexName), "A CourseMirror activity mutex was not observable.");
+                        Require(CourseStowProcessIdentity.IsMutexActive(mutexName), "A CourseStow activity mutex was not observable.");
                         GC.KeepAlive(held);
                     }
                 }
@@ -69,12 +69,12 @@ namespace CourseMirror.ControlPanel
                 stage = "schedule contracts";
                 var disabledScheduler = new RecordingInstallerTaskScheduler();
                 var unconfiguredBackend = new InstallerSelfTestBackend(false, true, 4);
-                Require(InstallerMaintenanceCommand.RunReconcileSchedule(unconfiguredBackend, disabledScheduler, "C:\\Program Files\\CourseMirror\\CourseMirror.exe") == InstallerMaintenanceExitCode.Success, "Unconfigured schedule reconciliation failed.");
+                Require(InstallerMaintenanceCommand.RunReconcileSchedule(unconfiguredBackend, disabledScheduler, "C:\\Program Files\\CourseStow\\CourseStow.exe") == InstallerMaintenanceExitCode.Success, "Unconfigured schedule reconciliation failed.");
                 Require(disabledScheduler.LastRequest != null && !disabledScheduler.LastRequest.Enabled, "Unconfigured install invented a schedule.");
 
                 var enabledScheduler = new RecordingInstallerTaskScheduler();
                 var enabledBackend = new InstallerSelfTestBackend(true, true, 4);
-                const string installedExecutable = "C:\\Users\\Example\\AppData\\Local\\Programs\\CourseMirror\\CourseMirror.exe";
+                const string installedExecutable = "C:\\Users\\Example\\AppData\\Local\\Programs\\CourseStow\\CourseStow.exe";
                 Require(InstallerMaintenanceCommand.RunReconcileSchedule(enabledBackend, enabledScheduler, installedExecutable) == InstallerMaintenanceExitCode.Success, "Enabled schedule reconciliation failed.");
                 Require(enabledScheduler.LastRequest.Enabled
                     && enabledScheduler.LastRequest.IntervalHours == 4
@@ -241,7 +241,7 @@ namespace CourseMirror.ControlPanel
             DeletedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        internal string Root { get { return @"C:\fixture\CourseMirror"; } }
+        internal string Root { get { return @"C:\fixture\CourseStow"; } }
         internal string ReparseChild { get { return Root + @"\linked-mirror"; } }
         internal string OrdinaryChild { get { return Root + @"\state"; } }
         internal string OrdinaryFile { get { return OrdinaryChild + @"\state.json"; } }

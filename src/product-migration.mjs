@@ -5,11 +5,11 @@ import { randomUUID } from 'node:crypto';
 
 export const PRODUCT_RUNTIME_MIGRATION_MARKER = 'product-identity-migration.json';
 const LEGACY_PRODUCT_NAME = 'Brightspace Sync';
-const CURRENT_PRODUCT_NAME = 'CourseMirror';
+const CURRENT_PRODUCT_NAME = 'CourseStow';
 
 export class ProductRuntimeMigrationConflictError extends Error {
   constructor(legacyDataDir, dataDir) {
-    super(`CourseMirror found existing private data in both ${legacyDataDir} and ${dataDir}. Automatic migration stopped; manual review is required.`);
+    super(`CourseStow found existing private data in both ${legacyDataDir} and ${dataDir}. Automatic migration stopped; manual review is required.`);
     this.name = 'ProductRuntimeMigrationConflictError';
     this.code = 'product-runtime-migration-conflict';
     this.legacyDataDir = legacyDataDir;

@@ -53,7 +53,7 @@ try {
 
   const second = await ensureMirrorLayout({ outputDir: root, stateDir, currentTerm: null }, '1.7.0');
   assert.equal(second.actions.length, 0);
-  console.log('CourseMirror mirror/runtime state self-test: PASS');
+  console.log('CourseStow mirror/runtime state self-test: PASS');
 } finally {
   await fs.rm(root, { recursive: true, force: true });
   await fs.rm(stateDir, { recursive: true, force: true });

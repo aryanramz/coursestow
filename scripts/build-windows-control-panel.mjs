@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { createTemporaryAssemblyVersionSource } from './windows-assembly-version.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PROJECT_DIR = path.join(ROOT, 'desktop', 'CourseMirror.ControlPanel');
+const PROJECT_DIR = path.join(ROOT, 'desktop', 'CourseStow.ControlPanel');
 const OUTPUT_DIR = path.join(PROJECT_DIR, 'bin', 'Release');
-const OUTPUT_EXE = path.join(OUTPUT_DIR, 'CourseMirror.exe');
+const OUTPUT_EXE = path.join(OUTPUT_DIR, 'CourseStow.exe');
 const OUTPUT_CONFIG = `${OUTPUT_EXE}.config`;
 const SOURCE_FILES = [
   'BackendDiagnosticSanitizer.cs',
@@ -24,7 +24,7 @@ const SOURCE_FILES = [
   'UpdateCheckSelfTest.cs',
   'UpdateCheckService.cs',
   'WindowsTaskScheduler.cs',
-  path.join('..', 'Shared', 'CourseMirrorProcessIdentity.cs'),
+  path.join('..', 'Shared', 'CourseStowProcessIdentity.cs'),
   path.join('..', 'Shared', 'WindowsCredentialStore.cs'),
   path.join('Properties', 'AssemblyInfo.cs')
 ];
@@ -76,7 +76,7 @@ async function build() {
   const manifest = path.join(PROJECT_DIR, 'app.manifest');
   const appConfig = path.join(PROJECT_DIR, 'App.config');
   for (const [file, label] of [
-    [path.join(PROJECT_DIR, 'CourseMirror.ControlPanel.csproj'), 'WinForms project'],
+    [path.join(PROJECT_DIR, 'CourseStow.ControlPanel.csproj'), 'WinForms project'],
     [manifest, 'application manifest'],
     [appConfig, 'application configuration'],
     ...SOURCE_FILES.map(name => [path.join(PROJECT_DIR, name), `control-panel source ${name}`])
@@ -106,7 +106,7 @@ async function build() {
     await generatedVersion.cleanup();
   }
   await fs.copyFile(appConfig, OUTPUT_CONFIG);
-  await requireFile(OUTPUT_EXE, 'compiled CourseMirror control panel');
+  await requireFile(OUTPUT_EXE, 'compiled CourseStow control panel');
   await requireFile(OUTPUT_CONFIG, 'compiled control-panel runtime configuration');
   console.log(`Windows control panel ${generatedVersion.packageVersion} created: ${OUTPUT_EXE}`);
 }

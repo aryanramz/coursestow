@@ -25,7 +25,7 @@ assert.equal(validateTagMatchesPackage('v3.0.0', packageJson.version), packageJs
 assert.throws(() => validateTagMatchesPackage('v3.0.1', packageJson.version), /does not match/);
 assert.throws(() => validateTagMatchesPackage('v2.4.1', packageJson.version), /does not match/);
 
-const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-release-contract-'));
+const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-release-contract-'));
 try {
   const [installerName, checksumName] = expectedReleaseArtifactNames(packageJson.version);
   const installer = path.join(temp, installerName);
@@ -67,9 +67,9 @@ assert.match(workflow, /gh release view/);
 assert.match(workflow, /gh release create/);
 assert.match(workflow, /--verify-tag/);
 assert.doesNotMatch(workflow, /--draft|--prerelease/);
-assert.match(workflow, /CourseMirror-\$version-Setup\.exe/);
-assert.match(workflow, /CourseMirror-\$version-Setup\.exe\.sha256/);
+assert.match(workflow, /CourseStow-\$version-Setup\.exe/);
+assert.match(workflow, /CourseStow-\$version-Setup\.exe\.sha256/);
 assert.match(workflow, /npm run update-check-selftest/);
 assert.match(workflow, /npm run release-pipeline-selftest/);
 
-console.log('CourseMirror release-pipeline self-test passed.');
+console.log('CourseStow release-pipeline self-test passed.');

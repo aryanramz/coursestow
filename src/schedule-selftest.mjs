@@ -23,7 +23,7 @@ import {
 } from './scheduled.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const root = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-schedule-selftest-'));
+const root = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-schedule-selftest-'));
 try {
   assert.deepEqual(normalizeScheduleConfig(undefined), {
     enabled: false, intervalHours: 6, fullIntervalDays: 7
@@ -165,8 +165,8 @@ try {
         cwd: ROOT,
         env: {
           ...process.env,
-          COURSEMIRROR_DATA_DIR: overlapData,
-          COURSEMIRROR_MIRROR_DIR: overlapMirror
+          COURSESTOW_DATA_DIR: overlapData,
+          COURSESTOW_MIRROR_DIR: overlapMirror
         },
         stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true

@@ -19,7 +19,7 @@ if (major < 20) {
 }
 
 if (process.platform !== 'win32') {
-  console.error('Platform check: FAIL (CourseMirror is currently supported on Windows 10/11 only)');
+  console.error('Platform check: FAIL (CourseStow is currently supported on Windows 10/11 only)');
   ok = false;
 } else {
   console.log('Platform check: PASS (Windows)');

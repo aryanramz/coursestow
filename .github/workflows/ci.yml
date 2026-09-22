@@ -224,7 +224,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $name = "CourseMirror-$version-Setup.exe"
+          $name = "CourseStow-$version-Setup.exe"
           $installer = Join-Path $PWD "dist\installer\$name"
           $sidecar = "$installer.sha256"
           if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) { throw "Installer is missing: $installer" }
@@ -243,7 +243,7 @@ jobs:
       - name: Upload development installer for review
         uses: actions/upload-artifact@v4
         with:
-          name: coursemirror-installer-development
+          name: coursestow-installer-development
           path: dist/installer/*
           if-no-files-found: error
           retention-days: 7

@@ -337,7 +337,7 @@ export async function writeProjectViews(config, manifest, changes, mode, complet
   const registry = await updateCourseRegistry(config, manifest, completedAt);
 
   // Mark semester views that are no longer active as archived without touching
-  // the underlying course mirror. Their last real data remains queryable forever,
+  // the underlying mirrored course data. Their last real data remains queryable forever,
   // but Quick/Full Sync will no longer crawl those courses.
   const activeTermKeys = new Set((manifest.activeTerms || []).map(t => t.key));
   const registryTerms = new Map();

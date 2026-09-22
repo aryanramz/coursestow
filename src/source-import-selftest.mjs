@@ -77,16 +77,16 @@ function hasError(response, code) {
   return response.errors?.some(error => error.code === code);
 }
 
-const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-source-import-'));
+const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-source-import-'));
 try {
   const runtime = await makeRuntime(temp, 'Successful');
   const paths = resolveRuntimePaths(runtime);
   const fresh = await getDesktopSettings({ runtime, browserInspector: async () => browserFixture() });
   assert.equal(fresh.mayImportLegacySetup, true, 'fresh generated runtime must offer explicit import');
-  const source = await makeSource(temp, 'Existing CourseMirror');
+  const source = await makeSource(temp, 'Existing CourseStow');
   const sourceConfigBefore = await fs.readFile(path.join(source.source, 'config.json'), 'utf8');
   const imported = await importSourceCheckout({ schemaVersion: 1, sourceDir: source.source }, { runtime });
-  assert.equal(imported.ok, true, 'valid CourseMirror setup must import');
+  assert.equal(imported.ok, true, 'valid CourseStow setup must import');
 
   const importedConfigText = await fs.readFile(paths.configFile, 'utf8');
   const importedConfig = JSON.parse(importedConfigText);
@@ -134,7 +134,7 @@ try {
   const failingIo = {
     ...fs,
     async rename(from, to) {
-      if (from.includes('CourseMirror.importing-') && path.normalize(to) === path.normalize(rollbackPaths.profileDir)) {
+      if (from.includes('CourseStow.importing-') && path.normalize(to) === path.normalize(rollbackPaths.profileDir)) {
         const error = new Error('Synthetic promotion failure');
         error.code = 'EIO';
         throw error;

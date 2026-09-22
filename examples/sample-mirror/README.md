@@ -1,6 +1,6 @@
 # Synthetic sample mirror
 
-This directory shows the shape of CourseMirror output without containing any real student, course, instructor, or institution data.
+This directory shows the shape of CourseStow output without containing any real student, course, instructor, or institution data.
 
 The sample is intentionally small. A real mirror can contain additional section snapshots, HTML diagnostics, downloaded files, discussion details, content modules, term indexes, and system metadata depending on configuration and sync mode.
 

@@ -23,7 +23,7 @@ export async function runRefreshLogin({
   if (!config.baseUrl) throw new Error('Brightspace is not configured. Open Settings before refreshing login.');
 
   const lock = await acquireLock(paths.lockDir, { mode: 'refresh-login' });
-  if (!lock.acquired) throw new Error(`Another CourseMirror operation is already running: ${describeActiveLock(lock)}.`);
+  if (!lock.acquired) throw new Error(`Another CourseStow operation is already running: ${describeActiveLock(lock)}.`);
 
   try {
     const browser = await findBrowser(config.browserExecutablePath);

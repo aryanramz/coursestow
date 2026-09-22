@@ -1,10 +1,10 @@
-using CourseMirror.Security;
+using CourseStow.Security;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal static class InstallerMaintenanceExitCode
     {
@@ -32,7 +32,7 @@ namespace CourseMirror.ControlPanel
 
         public bool IsMutexActive(string name)
         {
-            return CourseMirrorProcessIdentity.IsMutexActive(name);
+            return CourseStowProcessIdentity.IsMutexActive(name);
         }
 
         public BackendStatus GetStatus()
@@ -82,11 +82,11 @@ namespace CourseMirror.ControlPanel
         internal void RemoveCurrentUserPrivateData()
         {
             string localData = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
-            string expected = Path.Combine(localData, "CourseMirror");
+            string expected = Path.Combine(localData, "CourseStow");
             string candidate = Path.GetFullPath(expected);
             if (!String.Equals(candidate, expected, StringComparison.OrdinalIgnoreCase)
                 || !String.Equals(Path.GetDirectoryName(candidate), localData, StringComparison.OrdinalIgnoreCase))
-                throw new IOException("The CourseMirror private-data location could not be verified.");
+                throw new IOException("The CourseStow private-data location could not be verified.");
             DeleteTreeWithoutFollowingReparsePoints(candidate);
         }
 
@@ -181,9 +181,9 @@ namespace CourseMirror.ControlPanel
             if (activity == null) throw new ArgumentNullException("activity");
             try
             {
-                if (activity.IsMutexActive(CourseMirrorProcessIdentity.ControlPanelMutexName)
-                    || activity.IsMutexActive(CourseMirrorProcessIdentity.LegacyControlPanelMutexName)
-                    || activity.IsMutexActive(CourseMirrorProcessIdentity.CredentialHelperMutexName))
+                if (activity.IsMutexActive(CourseStowProcessIdentity.ControlPanelMutexName)
+                    || activity.IsMutexActive(CourseStowProcessIdentity.LegacyControlPanelMutexName)
+                    || activity.IsMutexActive(CourseStowProcessIdentity.CredentialHelperMutexName))
                     return InstallerMaintenanceExitCode.Busy;
 
                 BackendStatus status = activity.GetStatus();

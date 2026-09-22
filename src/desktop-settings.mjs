@@ -421,7 +421,7 @@ async function validateRequest(request, loaded, io, browserInspector) {
   }
   if (loaded.paths.mirrorDirOverride && requestedMirror && existingMirror
     && !sameCanonicalPath(requestedMirror.physicalPath, existingMirror.physicalPath)) {
-    errors.push(validationError('mirrorDir', 'environment-override-active', 'The mirror folder is controlled by COURSEMIRROR_MIRROR_DIR.'));
+    errors.push(validationError('mirrorDir', 'environment-override-active', 'The mirror folder is controlled by COURSESTOW_MIRROR_DIR.'));
   }
 
   return {
@@ -465,7 +465,7 @@ export async function saveDesktopSettings(request, {
   const paths = resolveRuntimePaths(runtime);
   const syncLock = await acquireSyncLock(paths.lockDir, { mode: 'settings' });
   if (!syncLock.acquired) {
-    return settingsFailure('operation-active', 'Another CourseMirror operation is running. Try again when it finishes.', 'operation');
+    return settingsFailure('operation-active', 'Another CourseStow operation is running. Try again when it finishes.', 'operation');
   }
 
   try {

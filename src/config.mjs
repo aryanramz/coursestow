@@ -120,7 +120,7 @@ function parsedConfigVersion(raw, file) {
   }
   if (version > CURRENT_CONFIG_VERSION) {
     throw new Error(
-      `Configuration version ${version} in ${file} is newer than this application supports (${CURRENT_CONFIG_VERSION}). Upgrade CourseMirror before using this configuration.`
+      `Configuration version ${version} in ${file} is newer than this application supports (${CURRENT_CONFIG_VERSION}). Upgrade CourseStow before using this configuration.`
     );
   }
   return version;

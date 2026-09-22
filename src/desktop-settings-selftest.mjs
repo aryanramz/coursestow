@@ -149,7 +149,7 @@ async function spawnSettingsSave(dataDir, userHome, payload) {
         ...process.env,
         USERPROFILE: userHome,
         LOCALAPPDATA: path.join(userHome, 'AppData', 'Local'),
-        COURSEMIRROR_DATA_DIR: dataDir
+        COURSESTOW_DATA_DIR: dataDir
       },
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true
@@ -165,7 +165,7 @@ async function spawnSettingsSave(dataDir, userHome, payload) {
   return result;
 }
 
-const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-desktop-settings-'));
+const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-desktop-settings-'));
 try {
   const basicRuntime = await makeRuntime(temp, 'Basic');
   const basicPaths = resolveRuntimePaths(basicRuntime);
@@ -797,7 +797,7 @@ try {
   const overrideRuntime = await makeRuntime(temp, 'Override');
   await fs.mkdir(overrideRoot, { recursive: true });
   const overrideAliasSupported = await createDirectoryAlias(overrideRoot, overrideAlias);
-  overrideRuntime.env.COURSEMIRROR_MIRROR_DIR = overrideAliasSupported ? overrideAlias : overrideRoot;
+  overrideRuntime.env.COURSESTOW_MIRROR_DIR = overrideAliasSupported ? overrideAlias : overrideRoot;
   const overridePaths = resolveRuntimePaths(overrideRuntime);
   const overrideSettings = await getDesktopSettings({ runtime: overrideRuntime });
   assert.equal(overrideSettings.mirrorOverrideActive, true);

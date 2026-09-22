@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal enum UpdateCheckOutcome
     {
@@ -187,7 +187,7 @@ namespace CourseMirror.ControlPanel
 
     internal sealed class GitHubUpdateHttpTransport : IUpdateHttpTransport
     {
-        internal static readonly Uri LatestReleaseEndpoint = new Uri("https://api.github.com/repos/aryanramz/coursemirror/releases/latest");
+        internal static readonly Uri LatestReleaseEndpoint = new Uri("https://api.github.com/repos/aryanramz/coursestow/releases/latest");
         internal const int MaximumResponseCharacters = 262144;
         private readonly HttpClient _client;
         private readonly string _currentVersion;
@@ -210,7 +210,7 @@ namespace CourseMirror.ControlPanel
         {
             var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseEndpoint);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-            request.Headers.UserAgent.ParseAdd("CourseMirror/" + _currentVersion);
+            request.Headers.UserAgent.ParseAdd("CourseStow/" + _currentVersion);
             request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
             EntityTagHeaderValue parsed;
             if (UpdateCheckService.TryNormalizeEtag(etag, out parsed))
@@ -291,7 +291,7 @@ namespace CourseMirror.ControlPanel
             string value = informational == null ? null : informational.InformationalVersion;
             StableVersion parsed;
             if (!StableVersion.TryParse(value, false, out parsed))
-                throw new InvalidDataException("CourseMirror binary version metadata is invalid.");
+                throw new InvalidDataException("CourseStow binary version metadata is invalid.");
             return parsed.ToString();
         }
     }
@@ -300,7 +300,7 @@ namespace CourseMirror.ControlPanel
     {
         internal const int CacheSchemaVersion = 1;
         internal static readonly TimeSpan AutomaticInterval = TimeSpan.FromHours(24);
-        private const string ReleasePrefix = "https://github.com/aryanramz/coursemirror/releases/tag/v";
+        private const string ReleasePrefix = "https://github.com/aryanramz/coursestow/releases/tag/v";
         private readonly StableVersion _currentVersion;
         private readonly IUpdateCheckCacheStore _cacheStore;
         private readonly IUpdateHttpTransport _transport;
@@ -309,7 +309,7 @@ namespace CourseMirror.ControlPanel
         internal UpdateCheckService(string currentVersion, IUpdateCheckCacheStore cacheStore, IUpdateHttpTransport transport, IUpdateCheckClock clock)
         {
             if (!StableVersion.TryParse(currentVersion, false, out _currentVersion))
-                throw new InvalidDataException("CourseMirror binary version metadata is invalid.");
+                throw new InvalidDataException("CourseStow binary version metadata is invalid.");
             if (cacheStore == null) throw new ArgumentNullException("cacheStore");
             if (transport == null) throw new ArgumentNullException("transport");
             if (clock == null) throw new ArgumentNullException("clock");

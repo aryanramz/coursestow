@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-Write-Host "CourseMirror setup"
+Write-Host "CourseStow setup"
 Set-Location $PSScriptRoot
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {

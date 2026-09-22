@@ -19,7 +19,7 @@ try {
   if (!third.acquired) throw new Error('lock was not available after release');
   await third.release();
 
-  const staleFile = path.join(root, '.coursemirror.lock');
+  const staleFile = path.join(root, '.coursestow.lock');
   await fs.writeFile(staleFile, JSON.stringify({ pid: 99999999, mode: 'stale', startedAt: '2000-01-01T00:00:00.000Z' }));
   const recovered = await acquireSyncLock(root, { mode: 'quick' });
   if (!recovered.acquired) throw new Error('stale lock was not recovered');

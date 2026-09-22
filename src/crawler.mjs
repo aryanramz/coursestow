@@ -313,7 +313,7 @@ export async function waitForAuthenticatedHome(page, baseUrl, timeoutMs, authCon
 
   console.log('\nBrightspace login is required.');
   if (autoSubmit) {
-    console.log('If Brave exposes a saved login as browser autofill, CourseMirror can attempt to submit it automatically.');
+    console.log('If Brave exposes a saved login as browser autofill, CourseStow can attempt to submit it automatically.');
     console.log('The crawler never reads, stores, or logs the password itself.');
   }
   console.log('If credentials are not saved/autofilled, complete the login manually in the Brave window.');

@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ensureDir, exists, writeJson, writeJsonAtomic } from './utils.mjs';
-import { canonicalCourseMirrorDir } from './courseFolders.mjs';
+import { canonicalCourseStowDir } from './courseFolders.mjs';
 import { inferCalendarTerm, parseTerm } from './terms.mjs';
 
 export const MIRROR_SCHEMA_VERSION = 2;
@@ -77,7 +77,7 @@ async function migrateRootCourseFolders(outputDir, config, actions) {
     const term = meta?.term?.key ? meta.term : (parseTerm(name) || parseTerm(config.currentTerm) || inferCalendarTerm());
     const termKey = term?.key || 'Unclassified';
     const course = { id: String(meta?.id || id), name };
-    const canonical = canonicalCourseMirrorDir(course);
+    const canonical = canonicalCourseStowDir(course);
     const target = path.join(outputDir, termKey, canonical);
     await moveOrMerge(source, target);
     actions.push({ action: 'move-course-to-term', courseId: String(id), from: entry.name, to: `${termKey}/${canonical}`, term: term?.label || null });

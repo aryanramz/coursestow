@@ -1,6 +1,6 @@
 using System;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal static class ScheduledRunCommand
     {

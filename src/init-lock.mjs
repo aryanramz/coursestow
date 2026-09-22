@@ -1,6 +1,6 @@
 import { acquireProcessLock, describeProcessLock } from './process-lock.mjs';
 
-export const INIT_LOCK_FILE_NAME = '.coursemirror-init.lock';
+export const INIT_LOCK_FILE_NAME = '.coursestow-init.lock';
 export const DEFAULT_INIT_LOCK_WAIT_MS = 30_000;
 export const DEFAULT_INIT_LOCK_STALE_MS = 60 * 60 * 1000;
 
@@ -20,6 +20,6 @@ export function acquireInitializationLock(paths, {
 
 export function initializationLockError(lock) {
   return new Error(
-    `Timed out after ${lock?.waitedMs ?? DEFAULT_INIT_LOCK_WAIT_MS}ms waiting for CourseMirror initialization: ${describeProcessLock(lock)}.`
+    `Timed out after ${lock?.waitedMs ?? DEFAULT_INIT_LOCK_WAIT_MS}ms waiting for CourseStow initialization: ${describeProcessLock(lock)}.`
   );
 }

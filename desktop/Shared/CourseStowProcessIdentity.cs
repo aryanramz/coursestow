@@ -1,14 +1,14 @@
 using System;
 using System.Threading;
 
-namespace CourseMirror.Security
+namespace CourseStow.Security
 {
-    internal static class CourseMirrorProcessIdentity
+    internal static class CourseStowProcessIdentity
     {
-        internal const string ControlPanelMutexName = @"Local\CourseMirror.ControlPanel";
+        internal const string ControlPanelMutexName = @"Local\CourseStow.ControlPanel";
         internal const string LegacyControlPanelMutexName = @"Local\BrightspaceSync.ControlPanel";
-        internal const string CredentialHelperMutexName = @"Local\CourseMirror.CredentialHelper";
-        internal const string InstallerLifecycleMutexName = @"Local\CourseMirror.InstallerLifecycle";
+        internal const string CredentialHelperMutexName = @"Local\CourseStow.CredentialHelper";
+        internal const string InstallerLifecycleMutexName = @"Local\CourseStow.InstallerLifecycle";
 
         internal static bool IsMutexActive(string name)
         {

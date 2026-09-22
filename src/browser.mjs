@@ -85,7 +85,7 @@ export async function probeChromiumExecutable(executablePath, {
   if (!await isRegularFile(normalized, io)) return { compatible: false, status: 'missing' };
 
   await io.mkdir(tempRoot, { recursive: true });
-  const profileDir = await io.mkdtemp(path.join(tempRoot, 'coursemirror-browser-probe-'));
+  const profileDir = await io.mkdtemp(path.join(tempRoot, 'coursestow-browser-probe-'));
   let context;
   try {
     context = await launchPersistentContext(profileDir, {
@@ -98,11 +98,11 @@ export async function probeChromiumExecutable(executablePath, {
     });
     const pages = context.pages();
     const page = pages[0] || await context.newPage();
-    await page.goto('data:text/html,<title>CourseMirror compatibility probe</title>', {
+    await page.goto('data:text/html,<title>CourseStow compatibility probe</title>', {
       waitUntil: 'domcontentloaded',
       timeout: timeoutMs
     });
-    if (await page.title() !== 'CourseMirror compatibility probe') {
+    if (await page.title() !== 'CourseStow compatibility probe') {
       return { compatible: false, status: 'incompatible' };
     }
     return { compatible: true, status: 'compatible' };
@@ -181,7 +181,7 @@ export function findChromiumExecutable(configuredPath = '') {
   if (found) return found;
 
   throw new Error(
-    'No compatible Chromium browser was found. Open CourseMirror Settings to retry detection, '
+    'No compatible Chromium browser was found. Open CourseStow Settings to retry detection, '
     + 'choose a browser executable, or install Microsoft Edge.'
   );
 }
@@ -197,7 +197,7 @@ export async function findCompatibleChromiumExecutable(configuredPath = '', opti
     };
   }
   throw new Error(
-    'No compatible Chromium browser was found. Open CourseMirror Settings to retry detection, '
+    'No compatible Chromium browser was found. Open CourseStow Settings to retry detection, '
     + 'choose a browser executable, or install Microsoft Edge.'
   );
 }

@@ -9,16 +9,16 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relative => fs.readFile(path.join(ROOT, relative), 'utf8');
 const [service, selfTest, mainForm, program, project, buildScript] = await Promise.all([
-  read('desktop/CourseMirror.ControlPanel/UpdateCheckService.cs'),
-  read('desktop/CourseMirror.ControlPanel/UpdateCheckSelfTest.cs'),
-  read('desktop/CourseMirror.ControlPanel/MainForm.cs'),
-  read('desktop/CourseMirror.ControlPanel/Program.cs'),
-  read('desktop/CourseMirror.ControlPanel/CourseMirror.ControlPanel.csproj'),
+  read('desktop/CourseStow.ControlPanel/UpdateCheckService.cs'),
+  read('desktop/CourseStow.ControlPanel/UpdateCheckSelfTest.cs'),
+  read('desktop/CourseStow.ControlPanel/MainForm.cs'),
+  read('desktop/CourseStow.ControlPanel/Program.cs'),
+  read('desktop/CourseStow.ControlPanel/CourseStow.ControlPanel.csproj'),
   read('scripts/build-windows-control-panel.mjs')
 ]);
 
-assert.match(service, /https:\/\/api\.github\.com\/repos\/aryanramz\/coursemirror\/releases\/latest/);
-assert.match(service, /CourseMirror\/" \+ _currentVersion/);
+assert.match(service, /https:\/\/api\.github\.com\/repos\/aryanramz\/coursestow\/releases\/latest/);
+assert.match(service, /CourseStow\/" \+ _currentVersion/);
 assert.match(service, /TimeSpan\.FromSeconds\(5\)/);
 assert.match(service, /HttpMethod\.Get/);
 assert.match(service, /application\/vnd\.github\+json/);
@@ -47,16 +47,16 @@ assert.match(selfTest, /updateCompletionAfterCloseIgnored/);
 
 if (process.argv.includes('--require-built')) {
   assert.equal(process.platform, 'win32', '--require-built update-check testing requires Windows');
-  const executable = path.join(ROOT, 'dist', 'CourseMirror', 'CourseMirror.exe');
+  const executable = path.join(ROOT, 'dist', 'CourseStow', 'CourseStow.exe');
   const stat = await fs.stat(executable);
-  assert.equal(stat.isFile(), true, 'packaged CourseMirror.exe is required');
-  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror update selftest '));
+  assert.equal(stat.isFile(), true, 'packaged CourseStow.exe is required');
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow update selftest '));
   try {
     const output = path.join(temp, 'result.json');
     const result = await new Promise((resolve, reject) => {
       const child = spawn(executable, ['--update-check-self-test', output], {
         cwd: temp,
-        env: { ...process.env, COURSEMIRROR_DATA_DIR: path.join(temp, 'external data') },
+        env: { ...process.env, COURSESTOW_DATA_DIR: path.join(temp, 'external data') },
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe']
       });
@@ -77,4 +77,4 @@ if (process.argv.includes('--require-built')) {
   }
 }
 
-console.log('CourseMirror update-check self-test passed.');
+console.log('CourseStow update-check self-test passed.');

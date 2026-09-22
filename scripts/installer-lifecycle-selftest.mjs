@@ -7,20 +7,20 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const BUNDLE = path.join(ROOT, 'dist', 'CourseMirror');
-const CONTROL_PANEL = path.join(BUNDLE, 'CourseMirror.exe');
+const BUNDLE = path.join(ROOT, 'dist', 'CourseStow');
+const CONTROL_PANEL = path.join(BUNDLE, 'CourseStow.exe');
 const EXPECTED_BASE = '3.0.0';
 const EXPECTED_APP_ID = '7E264BC7-FCBE-4BF2-9A24-E342C533A770';
 
 const read = relative => fs.readFile(path.join(ROOT, relative), 'utf8');
 const packageJson = JSON.parse(await read('package.json'));
-const installer = await read('installer/windows/CourseMirror.iss');
+const installer = await read('installer/windows/CourseStow.iss');
 const product = await read('installer/windows/includes/Product.iss');
-const program = await read('desktop/CourseMirror.ControlPanel/Program.cs');
-const maintenance = await read('desktop/CourseMirror.ControlPanel/InstallerMaintenance.cs');
-const maintenanceSelfTest = await read('desktop/CourseMirror.ControlPanel/InstallerMaintenanceSelfTest.cs');
-const helper = await read('desktop/CourseMirror.CredentialHelper/Program.cs');
-const identity = await read('desktop/Shared/CourseMirrorProcessIdentity.cs');
+const program = await read('desktop/CourseStow.ControlPanel/Program.cs');
+const maintenance = await read('desktop/CourseStow.ControlPanel/InstallerMaintenance.cs');
+const maintenanceSelfTest = await read('desktop/CourseStow.ControlPanel/InstallerMaintenanceSelfTest.cs');
+const helper = await read('desktop/CourseStow.CredentialHelper/Program.cs');
+const identity = await read('desktop/Shared/CourseStowProcessIdentity.cs');
 const workflow = await read('.github/workflows/ci.yml');
 
 assert.equal(packageJson.version, EXPECTED_BASE, 'Windows v3 lifecycle tests must use version 3.0.0');
@@ -42,15 +42,15 @@ for (const command of [
   '--installer-remove-private-data'
 ]) assert.match(maintenance, new RegExp(command.replaceAll('-', '\\-')));
 
-assert.match(identity, /Local\\CourseMirror\.ControlPanel/);
+assert.match(identity, /Local\\CourseStow\.ControlPanel/);
 assert.match(identity, /Local\\BrightspaceSync\.ControlPanel/);
-assert.match(identity, /Local\\CourseMirror\.CredentialHelper/);
-assert.match(identity, /Local\\CourseMirror\.InstallerLifecycle/);
-assert.match(helper, /CourseMirrorProcessIdentity\.CredentialHelperMutexName/);
-assert.match(helper, /CourseMirrorProcessIdentity\.InstallerLifecycleMutexName/);
+assert.match(identity, /Local\\CourseStow\.CredentialHelper/);
+assert.match(identity, /Local\\CourseStow\.InstallerLifecycle/);
+assert.match(helper, /CourseStowProcessIdentity\.CredentialHelperMutexName/);
+assert.match(helper, /CourseStowProcessIdentity\.InstallerLifecycleMutexName/);
 assert.match(helper, /new Mutex\(true,/);
 assert.match(maintenance, /GetStatusAsync\(\)/, 'preflight must delegate sync-lock status to the authoritative backend');
-assert.doesNotMatch(maintenance, /\.coursemirror\.lock|pidIsRunning|staleAfter/i, 'C# must not duplicate Node lock classification');
+assert.doesNotMatch(maintenance, /\.coursestow\.lock|pidIsRunning|staleAfter/i, 'C# must not duplicate Node lock classification');
 assert.match(maintenance, /InstallerMaintenanceExitCode\.Busy/);
 assert.match(maintenance, /InstallerMaintenanceExitCode\.InspectionFailure/);
 
@@ -60,7 +60,7 @@ assert.match(installer, /Result := 'fresh-install'/);
 assert.match(installer, /Result := 'repair'/);
 assert.match(installer, /Result := 'upgrade'/);
 assert.match(installer, /Result := 'downgrade'/);
-assert.match(installer, /A newer version of CourseMirror is already installed/);
+assert.match(installer, /A newer version of CourseStow is already installed/);
 assert.doesNotMatch(installer, /force.?downgrade/i);
 
 assert.match(installer, /^UsePreviousTasks=yes$/m);
@@ -70,10 +70,10 @@ assert.match(installer, /RestorePayloadBackup/);
 assert.match(installer, /DeleteManagedPayloadExceptUninstaller/);
 assert.match(installer, /ExtractTemporaryFiles\('\{app\}\\\*'\)/);
 assert.match(installer, /--installer-preflight/);
-assert.match(installer, /^SetupMutex=Local\\CourseMirror\.InstallerLifecycle$/m);
-assert.match(program, /CourseMirrorProcessIdentity\.InstallerLifecycleMutexName/);
+assert.match(installer, /^SetupMutex=Local\\CourseStow\.InstallerLifecycle$/m);
+assert.match(program, /CourseStowProcessIdentity\.InstallerLifecycleMutexName/);
 assert.match(installer, /MB_RETRYCANCEL/);
-assert.match(installer, /CourseMirror is currently running/);
+assert.match(installer, /CourseStow is currently running/);
 assert.doesNotMatch(installer, /taskkill|TerminateProcess|Stop-Process|kill\s*\(/i);
 
 assert.match(installer, /--installer-reconcile-schedule/);
@@ -85,12 +85,12 @@ assert.match(maintenance, /FileAttributes\.ReparsePoint/);
 assert.match(maintenanceSelfTest, /ExternalTarget/);
 assert.match(maintenanceSelfTest, /Cleanup followed a reparse point outside the private root/);
 
-assert.match(installer, /Also remove CourseMirror settings and private app data/);
+assert.match(installer, /Also remove CourseStow settings and private app data/);
 assert.match(installer, /RemovePrivateDataCheck\.Checked := False/);
 assert.match(installer, /RemovePrivateDataRequested := RemovePrivateDataCheck\.Checked/);
 assert.match(installer, /if RemovePrivateDataRequested then/);
 assert.doesNotMatch(installer, /if \(RemovePrivateDataCheck <> nil\) and RemovePrivateDataCheck\.Checked then/);
-assert.match(installer, /settings, browser session, saved credentials, local course mirror, and Google Drive copy will be preserved/);
+assert.match(installer, /settings, browser session, saved credentials, local school mirror, and Google Drive copy will be preserved/);
 assert.doesNotMatch(installer, /\[UninstallDelete\]/i, 'uninstall must not use broad declarative private-data deletion');
 assert.doesNotMatch(installer, /config\.json/i, 'installer must not parse or rewrite application config');
 assert.doesNotMatch(installer, /Brightspace URL|username|course name|mirror content|environment dump/i,
@@ -117,7 +117,7 @@ assert(scheduleFailureAbort > scheduleFailureLog && scheduleFailureAbort < priva
 assert(privateDataDecision < credentialRemoval && credentialRemoval < privateDataRemoval,
   'credential/private-data cleanup must remain unreachable after schedule-removal abort');
 assert.match(uninstallStep, /scheduled sync task, so uninstall was stopped/);
-assert.match(uninstallStep, /No CourseMirror application or private data was removed/);
+assert.match(uninstallStep, /No CourseStow application or private data was removed/);
 assert.doesNotMatch(uninstallStep, /scheduling could not be removed\. Reinstalling and uninstalling again can repair it/,
   'task-removal failure cannot remain a warning-only path');
 
@@ -137,7 +137,7 @@ if (process.platform === 'win32') {
   let bundleExists = false;
   try { bundleExists = (await fs.stat(CONTROL_PANEL)).isFile(); } catch {}
   if (bundleExists) {
-    const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-installer-lifecycle-'));
+    const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-installer-lifecycle-'));
     try {
       const outputFile = path.join(temp, 'maintenance-self-test.json');
       let result = await run(CONTROL_PANEL, ['--installer-lifecycle-self-test', outputFile], { cwd: BUNDLE });
@@ -154,13 +154,13 @@ if (process.platform === 'win32') {
       const dataDir = path.join(temp, 'runtime data');
       const mirrorDir = path.join(temp, 'school mirror');
       const stateDir = path.join(dataDir, 'state');
-      const lockFile = path.join(stateDir, '.coursemirror.lock');
+      const lockFile = path.join(stateDir, '.coursestow.lock');
       await fs.mkdir(stateDir, { recursive: true });
       const env = {
         ...process.env,
-        COURSEMIRROR_DATA_DIR: dataDir,
-        COURSEMIRROR_MIRROR_DIR: mirrorDir,
-        COURSEMIRROR_DEV_BUNDLE_ROOT: BUNDLE
+        COURSESTOW_DATA_DIR: dataDir,
+        COURSESTOW_MIRROR_DIR: mirrorDir,
+        COURSESTOW_DEV_BUNDLE_ROOT: BUNDLE
       };
 
       result = await run(CONTROL_PANEL, ['--installer-preflight'], { cwd: temp, env });
@@ -202,7 +202,7 @@ if (process.platform === 'win32') {
       await fs.rm(lockFile, { force: true });
       result = await run(CONTROL_PANEL, ['--installer-preflight'], {
         cwd: temp,
-        env: { ...env, COURSEMIRROR_DEV_BUNDLE_ROOT: path.join(temp, 'missing bundle') }
+        env: { ...env, COURSESTOW_DEV_BUNDLE_ROOT: path.join(temp, 'missing bundle') }
       });
       assert.equal(result.code, 11, 'backend inspection failure must have a distinct exit code');
       assert.equal(result.stdout, '');

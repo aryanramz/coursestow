@@ -1,6 +1,6 @@
 import { acquireProcessLock, describeProcessLock, inspectProcessLock } from './process-lock.mjs';
 
-export const SYNC_LOCK_FILE_NAME = '.coursemirror.lock';
+export const SYNC_LOCK_FILE_NAME = '.coursestow.lock';
 const DEFAULT_STALE_AFTER_HOURS = 24;
 
 export async function acquireSyncLock(root, { mode = 'sync', staleAfterHours = DEFAULT_STALE_AFTER_HOURS } = {}) {

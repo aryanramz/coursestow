@@ -152,7 +152,7 @@ jobs:
           node scripts/release-validation.mjs --tag "$env:GITHUB_REF_NAME" --artifacts dist\installer
           if ($LASTEXITCODE -ne 0) { throw 'Official release artifact validation failed.' }
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $installerPath = Join-Path $PWD "dist\installer\CourseMirror-$version-Setup.exe"
+          $installerPath = Join-Path $PWD "dist\installer\CourseStow-$version-Setup.exe"
           $expectedVersion = [Version]$version
           $actualVersion = [Version](Get-Item -LiteralPath $installerPath).VersionInfo.ProductVersion
           if ($actualVersion.Major -ne $expectedVersion.Major -or
@@ -160,13 +160,13 @@ jobs:
               $actualVersion.Build -ne $expectedVersion.Build) {
             throw "Official installer product version mismatch: expected $version, found $actualVersion."
           }
-          "installer=dist/installer/CourseMirror-$version-Setup.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "checksum=dist/installer/CourseMirror-$version-Setup.exe.sha256" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "installer=dist/installer/CourseStow-$version-Setup.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "checksum=dist/installer/CourseStow-$version-Setup.exe.sha256" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Upload exact verified release payload
         uses: actions/upload-artifact@v4
         with:
-          name: coursemirror-official-release
+          name: coursestow-official-release
           path: |
             ${{ steps.release-metadata.outputs.installer }}
             ${{ steps.release-metadata.outputs.checksum }}
@@ -190,7 +190,7 @@ jobs:
       - name: Download verified release payload
         uses: actions/download-artifact@v4
         with:
-          name: coursemirror-official-release
+          name: coursestow-official-release
           path: dist/installer
 
       - name: Revalidate payload and prepare release notes
@@ -216,7 +216,7 @@ jobs:
         shell: bash
         run: |
           version="${GITHUB_REF_NAME#v}"
-          installer="CourseMirror-$version-Setup.exe"
+          installer="CourseStow-$version-Setup.exe"
           checksum="$installer.sha256"
           gh release create "$GITHUB_REF_NAME" \
             "dist/installer/$installer" \
@@ -224,5 +224,5 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --latest \
-            --title "CourseMirror $GITHUB_REF_NAME" \
+            --title "CourseStow $GITHUB_REF_NAME" \
             --notes-file release-notes.md

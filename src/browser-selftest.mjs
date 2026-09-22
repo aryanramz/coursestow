@@ -12,7 +12,7 @@ import {
 } from './browser.mjs';
 import { probeDesktopBrowser } from './desktop-browser.mjs';
 
-const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursemirror-browser-contract-'));
+const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'coursestow-browser-contract-'));
 try {
   const env = {
     LOCALAPPDATA: path.join(temp, 'Local App Data'),
@@ -86,7 +86,7 @@ try {
       observedOptions = options;
       const page = {
         goto: async value => assert.match(value, /^data:text\/html,/),
-        title: async () => 'CourseMirror compatibility probe'
+        title: async () => 'CourseStow compatibility probe'
       };
       return { pages: () => [page], newPage: async () => page, close: async () => {} };
     }

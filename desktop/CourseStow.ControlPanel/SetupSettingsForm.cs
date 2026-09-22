@@ -1,4 +1,4 @@
-using CourseMirror.Security;
+using CourseStow.Security;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal interface ISettingsDialogService
     {
@@ -127,7 +127,7 @@ namespace CourseMirror.ControlPanel
             _importSourceAvailable = firstRun && settings.mayImportLegacySetup;
             _committedSchedule = CopySchedule(settings.schedule);
 
-            Text = firstRun ? "Set up CourseMirror" : "CourseMirror Settings";
+            Text = firstRun ? "Set up CourseStow" : "CourseStow Settings";
             StartPosition = FormStartPosition.CenterParent;
             ClientSize = new Size(610, 700);
             MinimumSize = new Size(626, 620);
@@ -141,7 +141,7 @@ namespace CourseMirror.ControlPanel
             var title = new Label
             {
                 AutoSize = true,
-                Text = firstRun ? "Set up CourseMirror" : "Settings",
+                Text = firstRun ? "Set up CourseStow" : "Settings",
                 Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold, GraphicsUnit.Point),
                 ForeColor = Color.FromArgb(34, 54, 74),
                 Location = new Point(22, 18)
@@ -188,7 +188,7 @@ namespace CourseMirror.ControlPanel
 
             ConfigureBrowserGroup(settings);
 
-            _importSource.Text = "Import settings from an existing CourseMirror setup...";
+            _importSource.Text = "Import settings from an existing CourseStow setup...";
             _importSource.Location = new Point(25, 365);
             _importSource.Size = new Size(330, 30);
             _importSource.Visible = _importSourceAvailable;
@@ -257,7 +257,7 @@ namespace CourseMirror.ControlPanel
         internal static string SuggestedFirstRunMirror()
         {
             string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            return Path.GetFullPath(Path.Combine(documents, "CourseMirror"));
+            return Path.GetFullPath(Path.Combine(documents, "CourseStow"));
         }
 
         internal SettingsSaveRequest RequestForSelfTest()
@@ -460,7 +460,7 @@ namespace CourseMirror.ControlPanel
         private async Task ImportSourceAsync()
         {
             if (_saving || !_firstRun) return;
-            string selected = _folderPicker.SelectFolder(this, "Choose an existing CourseMirror or Brightspace Sync setup folder.", String.Empty);
+            string selected = _folderPicker.SelectFolder(this, "Choose an existing CourseStow or Brightspace Sync setup folder.", String.Empty);
             if (String.IsNullOrWhiteSpace(selected)) return;
             _saving = true;
             SetInputsEnabled(false);
@@ -652,7 +652,7 @@ namespace CourseMirror.ControlPanel
 
             _scheduleEnabled.AutoSize = true;
             _scheduleEnabled.Location = new Point(14, 22);
-            _scheduleEnabled.Text = "Run CourseMirror automatically while I am signed in";
+            _scheduleEnabled.Text = "Run CourseStow automatically while I am signed in";
             _scheduleEnabled.Checked = schedule.enabled;
             _scheduleEnabled.CheckedChanged += delegate { UpdateScheduleControls(); };
 

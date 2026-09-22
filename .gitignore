@@ -16,7 +16,7 @@ config.json
 
 # Local auth/sync state and logs.
 *.log
-.coursemirror.lock
+.coursestow.lock
 .brightspace-sync.lock
 .env
 .env.*

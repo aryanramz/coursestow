@@ -21,7 +21,7 @@ async function main() {
   await ensureDir(paths.lockDir);
   const lock = await acquireSyncLock(paths.lockDir, { mode: 'publish' });
   if (!lock.acquired) {
-    console.log(`Another CourseMirror operation is already running: ${describeActiveLock(lock)}.`);
+    console.log(`Another CourseStow operation is already running: ${describeActiveLock(lock)}.`);
     console.log('Manual Drive publish was skipped so it cannot copy a partially-updated mirror.');
     return;
   }

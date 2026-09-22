@@ -54,7 +54,7 @@ async function validateRoot(sourceRoot, io) {
   const requested = path.resolve(String(sourceRoot || '').trim());
   const entry = await io.lstat(requested).catch(() => null);
   if (!entry || !entry.isDirectory() || entry.isSymbolicLink()) {
-    throw new Error('Choose an existing ordinary CourseMirror setup folder.');
+    throw new Error('Choose an existing ordinary CourseStow setup folder.');
   }
   // A Windows DOS 8.3 spelling can differ from realpath() without the selected
   // directory itself being a reparse point. lstat() rejects an actual selected
@@ -124,7 +124,7 @@ async function readImportSource(sourceRoot, io) {
   const configFile = path.join(root, 'config.json');
   const configEntry = await io.lstat(configFile).catch(() => null);
   if (!configEntry || !configEntry.isFile() || configEntry.isSymbolicLink()) {
-    throw new Error('The selected folder does not contain a supported CourseMirror configuration.');
+    throw new Error('The selected folder does not contain a supported CourseStow configuration.');
   }
   let raw;
   try { raw = JSON.parse(await io.readFile(configFile, 'utf8')); }
@@ -161,7 +161,7 @@ async function readImportSource(sourceRoot, io) {
 }
 
 async function stageImport(source, paths, io) {
-  const staging = path.join(path.dirname(paths.dataDir), `CourseMirror.importing-${process.pid}-${randomUUID()}`);
+  const staging = path.join(path.dirname(paths.dataDir), `CourseStow.importing-${process.pid}-${randomUUID()}`);
   await io.mkdir(staging, { recursive: false });
   try {
     await io.writeFile(path.join(staging, 'config.json'), `${JSON.stringify(source.config, null, 2)}\n`, 'utf8');
@@ -190,7 +190,7 @@ async function stageImport(source, paths, io) {
 }
 
 async function promoteImport(staging, paths, io) {
-  const backup = path.join(path.dirname(paths.dataDir), `CourseMirror.import-backup-${process.pid}-${randomUUID()}`);
+  const backup = path.join(path.dirname(paths.dataDir), `CourseStow.import-backup-${process.pid}-${randomUUID()}`);
   const promoted = [];
   const backedUp = [];
   await io.mkdir(backup);
@@ -245,17 +245,17 @@ function failure(code, message) {
 export async function importSourceCheckout(request, { runtime = {}, io = fs } = {}) {
   if (request?.schemaVersion !== SOURCE_IMPORT_SCHEMA_VERSION) return failure('unsupported-schema', 'The import request version is not supported.');
   const sourceRoot = String(request?.sourceDir || '').trim();
-  if (!sourceRoot || !path.isAbsolute(sourceRoot)) return failure('invalid-source', 'Choose an absolute existing CourseMirror setup folder.');
+  if (!sourceRoot || !path.isAbsolute(sourceRoot)) return failure('invalid-source', 'Choose an absolute existing CourseStow setup folder.');
 
   const paths = resolveRuntimePaths(runtime);
   const syncLock = await acquireSyncLock(paths.lockDir, { mode: 'settings' });
-  if (!syncLock.acquired) return failure('operation-active', 'Another CourseMirror operation is running. Try again when it finishes.');
+  if (!syncLock.acquired) return failure('operation-active', 'Another CourseStow operation is running. Try again when it finishes.');
   try {
     return await withUserConfigTransaction({
       runtime,
       async execute(loaded) {
         if (await installedRuntimeHasMeaningfulData(loaded, io)) {
-          return failure('target-not-empty', 'Import is available only before meaningful CourseMirror data has been configured.');
+          return failure('target-not-empty', 'Import is available only before meaningful CourseStow data has been configured.');
         }
         let staging = '';
         try {

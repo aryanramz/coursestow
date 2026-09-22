@@ -10,15 +10,15 @@ const MAX_RESPONSE_BYTES = 64 * 1024;
 const ALLOWED_TARGETS = new Set([STONY_BROOK_CREDENTIAL_TARGET]);
 
 function helperExecutable(appRoot) {
-  const packaged = path.resolve(appRoot, '..', 'CourseMirror Credential Helper.exe');
+  const packaged = path.resolve(appRoot, '..', 'CourseStow Credential Helper.exe');
   if (existsSync(packaged)) return packaged;
   return path.resolve(
     appRoot,
     'desktop',
-    'CourseMirror.CredentialHelper',
+    'CourseStow.CredentialHelper',
     'bin',
     'Release',
-    'CourseMirror Credential Helper.exe'
+    'CourseStow Credential Helper.exe'
   );
 }
 
@@ -34,7 +34,7 @@ export async function requestCredentialHelper(operation, target, {
   spawnProcess = spawn
 } = {}) {
   if (!['probe', 'read', 'write', 'delete'].includes(operation) || !ALLOWED_TARGETS.has(target)) throw safeHelperError();
-  const pipeName = `CourseMirror-Credential-${process.pid}-${randomUUID()}`;
+  const pipeName = `CourseStow-Credential-${process.pid}-${randomUUID()}`;
   const pipePath = `\\\\.\\pipe\\${pipeName}`;
   let request = JSON.stringify({ schemaVersion: 1, operation, target, username, password });
   username = '';

@@ -6,13 +6,13 @@ import { fileURLToPath } from 'node:url';
 import { createTemporaryAssemblyVersionSource } from './windows-assembly-version.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PROJECT_DIR = path.join(ROOT, 'desktop', 'CourseMirror.CredentialHelper');
+const PROJECT_DIR = path.join(ROOT, 'desktop', 'CourseStow.CredentialHelper');
 const OUTPUT_DIR = path.join(PROJECT_DIR, 'bin', 'Release');
-const OUTPUT_EXE = path.join(OUTPUT_DIR, 'CourseMirror Credential Helper.exe');
+const OUTPUT_EXE = path.join(OUTPUT_DIR, 'CourseStow Credential Helper.exe');
 const OUTPUT_CONFIG = `${OUTPUT_EXE}.config`;
 const SOURCE_FILES = [
   path.join(PROJECT_DIR, 'Program.cs'),
-  path.join(ROOT, 'desktop', 'Shared', 'CourseMirrorProcessIdentity.cs'),
+  path.join(ROOT, 'desktop', 'Shared', 'CourseStowProcessIdentity.cs'),
   path.join(ROOT, 'desktop', 'Shared', 'WindowsCredentialStore.cs'),
   path.join(PROJECT_DIR, 'Properties', 'AssemblyInfo.cs')
 ];
@@ -58,7 +58,7 @@ async function build() {
   const manifest = path.join(PROJECT_DIR, 'app.manifest');
   const appConfig = path.join(PROJECT_DIR, 'App.config');
   for (const [file, label] of [
-    [path.join(PROJECT_DIR, 'CourseMirror.CredentialHelper.csproj'), 'credential-helper project'],
+    [path.join(PROJECT_DIR, 'CourseStow.CredentialHelper.csproj'), 'credential-helper project'],
     [manifest, 'credential-helper manifest'],
     [appConfig, 'credential-helper configuration'],
     ...SOURCE_FILES.map(file => [file, `credential-helper source ${path.basename(file)}`])

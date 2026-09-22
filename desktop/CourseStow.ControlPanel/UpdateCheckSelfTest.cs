@@ -7,7 +7,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal sealed class UpdateCheckSelfTestResult
     {
@@ -111,9 +111,9 @@ namespace CourseMirror.ControlPanel
                 using (HttpRequestMessage request = http.CreateRequestForSelfTest("\"safe-etag\""))
                 {
                     exactEndpoint = request.Method == HttpMethod.Get
-                        && request.RequestUri.AbsoluteUri == "https://api.github.com/repos/aryanramz/coursemirror/releases/latest"
+                        && request.RequestUri.AbsoluteUri == "https://api.github.com/repos/aryanramz/coursestow/releases/latest"
                         && request.Headers.IfNoneMatch.Count == 1;
-                    versionedUserAgent = request.Headers.UserAgent.ToString() == "CourseMirror/3.0.0";
+                    versionedUserAgent = request.Headers.UserAgent.ToString() == "CourseStow/3.0.0";
                     requestHasNoAuthorization = request.Headers.Authorization == null;
                 }
 
@@ -129,7 +129,7 @@ namespace CourseMirror.ControlPanel
                 var cacheObject = new JavaScriptSerializer().DeserializeObject(cacheText) as IDictionary<string, object>;
                 string[] allowed = { "schemaVersion", "lastAttemptUtc", "etag", "latestVersion", "releaseUrl" };
                 bool allowlistOnly = cacheObject != null && cacheObject.Keys.All(key => allowed.Contains(key));
-                bool localUrl = newer.ReleaseUrl == "https://github.com/aryanramz/coursemirror/releases/tag/v3.0.1"
+                bool localUrl = newer.ReleaseUrl == "https://github.com/aryanramz/coursestow/releases/tag/v3.0.1"
                     && newer.ReleaseUrl.IndexOf(secretMarker, StringComparison.Ordinal) < 0
                     && UpdateCheckService.IsTrustedReleaseUrl(newer.ReleaseUrl)
                     && !UpdateCheckService.IsTrustedReleaseUrl("https://example.test/releases/tag/v3.0.1");

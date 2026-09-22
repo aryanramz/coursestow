@@ -1,30 +1,30 @@
-# CourseMirror
+# CourseStow
 
-**CourseMirror — for D2L Brightspace**
+**CourseStow — for D2L Brightspace**
 
-[![CI](https://github.com/aryanramz/coursemirror/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanramz/coursemirror/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/aryanramz/coursemirror)](https://github.com/aryanramz/coursemirror/releases/latest)
+[![CI](https://github.com/aryanramz/coursestow/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanramz/coursestow/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/aryanramz/coursestow)](https://github.com/aryanramz/coursestow/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-green.svg)](https://nodejs.org/)
 
 **Keep a structured, term-aware local mirror of the Brightspace content you can already access.**
 
-CourseMirror is a read-focused authenticated crawler and incremental course-mirroring pipeline for D2L Brightspace. It uses Playwright with a dedicated persistent Chromium profile, discovers courses dynamically, captures student-visible course data, tracks meaningful changes, and optionally publishes the mirror to a Google Drive for desktop folder for downstream search or AI workflows.
+CourseStow is a read-focused authenticated crawler and incremental course-mirroring pipeline for D2L Brightspace. It uses Playwright with a dedicated persistent Chromium profile, discovers courses dynamically, captures student-visible course data, tracks meaningful changes, and optionally publishes the mirror to a Google Drive for desktop folder for downstream search or AI workflows.
 
-> CourseMirror is an unofficial third-party utility for D2L Brightspace. It is not affiliated with or endorsed by D2L Corporation.
+> CourseStow is an unofficial third-party utility for D2L Brightspace. It is not affiliated with or endorsed by D2L Corporation.
 
 Users are responsible for complying with their institution's policies, applicable terms of service, and copyright rules.
 
 ## Why this exists
 
-Brightspace is useful as a live LMS, but less convenient as a durable personal archive or machine-readable knowledge source. CourseMirror turns the student-visible parts of an account into a predictable filesystem structure that can be searched, diffed, archived by semester, or connected to downstream tooling.
+Brightspace is useful as a live LMS, but less convenient as a durable personal archive or machine-readable knowledge source. CourseStow turns the student-visible parts of an account into a predictable filesystem structure that can be searched, diffed, archived by semester, or connected to downstream tooling.
 
 Typical use cases include:
 
 - keeping a personal semester archive
 - checking what changed since the last sync
 - searching course material outside the LMS UI
-- feeding a private course mirror into retrieval or AI tooling
+- feeding a private CourseStow mirror into retrieval or AI tooling
 - maintaining a local copy of assignments, announcements, course content, and supported files
 
 ## Highlights
@@ -113,15 +113,15 @@ Sync complete.
 
 The Windows installer includes its own private Node.js runtime, so installed users do not need Node.js, npm, Git, or administrator access. Browser binaries are intentionally not bundled. Source-checkout development still requires Node.js 20 or later.
 
-CourseMirror is currently packaged and tested as a **Windows desktop application**. macOS, Linux, iOS, iPadOS, Android, ARM64, and Firefox are not supported targets in this release candidate.
+CourseStow is currently packaged and tested as a **Windows desktop application**. macOS, Linux, iOS, iPadOS, Android, ARM64, and Firefox are not supported targets in this release candidate.
 
 ## Windows 3.0 release candidate
 
-The reviewed Windows build installs per-user to `%LOCALAPPDATA%\Programs\CourseMirror` and keeps configuration, the authenticated browser profile, state, and logs separately under `%LOCALAPPDATA%\CourseMirror`. The school mirror remains user-selectable, and Google Drive publishing remains a separate opt-in filesystem destination.
+The reviewed Windows build installs per-user to `%LOCALAPPDATA%\Programs\CourseStow` and keeps configuration, the authenticated browser profile, state, and logs separately under `%LOCALAPPDATA%\CourseStow`. The school mirror remains user-selectable, and Google Drive publishing remains a separate opt-in filesystem destination.
 
 On a fresh install, the control panel opens setup automatically. **Save & Sign In** safely persists settings, opens the existing visible SSO/MFA flow, and starts one initial Full Sync only after authentication succeeds. Settings can retry browser detection, choose and validate a Chromium executable, return to automatic detection, or open Microsoft's fixed Edge download page when no compatible browser is present. Microsoft Edge, Google Chrome, and Brave are officially tested; Vivaldi, Opera, Opera GX, and Chromium are best-effort compatible.
 
-First run can explicitly import supported configuration, BrowserProfile session data, and continuity state from a user-selected CourseMirror or pre-rename Brightspace Sync source checkout. It never scans the disk, moves the school mirror, copies Drive output, modifies the old checkout, or imports source code, Git data, dependencies, logs, or plaintext credentials.
+First run can explicitly import supported configuration, BrowserProfile session data, and continuity state from a user-selected CourseStow or pre-rename Brightspace Sync source checkout. It never scans the disk, moves the school mirror, copies Drive output, modifies the old checkout, or imports source code, Git data, dependencies, logs, or plaintext credentials.
 
 Automatic scheduling is optional. Update checking uses public GitHub Releases metadata, downloads or installs nothing, and has no telemetry. Default uninstall removes the application and its exact scheduled task while preserving private data, credentials, the school mirror, and Drive output unless the user explicitly selects private-data removal.
 
@@ -129,15 +129,15 @@ The 3.0.0 installer remains unsigned during release-candidate review and may app
 
 ## Quick start
 
-For the Windows release candidate, run `CourseMirror-3.0.0-Setup.exe`, then launch CourseMirror from the Start Menu and complete the guided first-run flow. The installer is per-user and requires no elevation.
+For the Windows release candidate, run `CourseStow-3.0.0-Setup.exe`, then launch CourseStow from the Start Menu and complete the guided first-run flow. The installer is per-user and requires no elevation.
 
 For source-checkout development:
 
 1. Clone the repository and install the locked dependencies:
 
    ```powershell
-   git clone https://github.com/aryanramz/coursemirror.git
-   cd coursemirror
+   git clone https://github.com/aryanramz/coursestow.git
+   cd coursestow
    npm ci
    ```
 
@@ -149,18 +149,18 @@ For source-checkout development:
    npm run doctor
    ```
 
-   The normal Windows path is `%LOCALAPPDATA%\CourseMirror\config.json`.
+   The normal Windows path is `%LOCALAPPDATA%\CourseStow\config.json`.
 
 3. Edit that `config.json` and set at minimum:
 
    ```json
    {
      "baseUrl": "https://your-school.brightspace.com",
-     "outputDir": "D:\\CourseMirror"
+     "outputDir": "D:\\CourseStow"
    }
    ```
 
-   `outputDir` is user-selectable. If it is blank, the default is `Documents\CourseMirror` in the current Windows profile.
+   `outputDir` is user-selectable. If it is blank, the default is `Documents\CourseStow` in the current Windows profile.
 
 4. Run the login setup helper:
 
@@ -168,7 +168,7 @@ For source-checkout development:
    SETUP_LOGIN.cmd
    ```
 
-   Sign into your institution normally. SSO and MFA remain under your institution's control. CourseMirror does not require your password in code or configuration.
+   Sign into your institution normally. SSO and MFA remain under your institution's control. CourseStow does not require your password in code or configuration.
 
 5. Run a Full sync first:
 
@@ -187,7 +187,7 @@ For source-checkout development:
 The crawler uses a dedicated persistent Chromium profile under:
 
 ```text
-%LOCALAPPDATA%\CourseMirror\BrowserProfile\
+%LOCALAPPDATA%\CourseStow\BrowserProfile\
 ```
 
 If a valid Brightspace/SSO session exists, syncs can usually continue without another login.
@@ -206,7 +206,7 @@ Application files and user data are deliberately separated so a future installer
 Application directory (read-only capable)
   src/, package.json, node_modules/, launchers
 
-%LOCALAPPDATA%\CourseMirror\
+%LOCALAPPDATA%\CourseStow\
   config.json
   BrowserProfile\
   state\
@@ -218,7 +218,7 @@ User-selected location
 
 All commands resolve the application directory from the running module rather than the current terminal directory. The `.cmd`, PowerShell, npm, scheduled, login, sync, and publish entry points all use the same stable launcher and runtime path abstraction.
 
-On first use after the product rename, CourseMirror transactionally copies an existing `%LOCALAPPDATA%\Brightspace Sync` runtime root to `%LOCALAPPDATA%\CourseMirror` when the new root has no meaningful data. Configuration, BrowserProfile, state, and logs are preserved, while the selected school mirror remains in its existing location. The old runtime root is retained for rollback. If both roots contain meaningful data, startup stops with a manual-review conflict instead of merging or overwriting them. Existing repo-relative migration remains supported and idempotent. See [`docs/WINDOWS_DISTRIBUTION.md`](docs/WINDOWS_DISTRIBUTION.md) for the detailed contract.
+On first use after the product rename, CourseStow transactionally copies an existing `%LOCALAPPDATA%\Brightspace Sync` runtime root to `%LOCALAPPDATA%\CourseStow` when the new root has no meaningful data. Configuration, BrowserProfile, state, and logs are preserved, while the selected school mirror remains in its existing location. The old runtime root is retained for rollback. If both roots contain meaningful data, startup stops with a manual-review conflict instead of merging or overwriting them. Existing repo-relative migration remains supported and idempotent. See [`docs/WINDOWS_DISTRIBUTION.md`](docs/WINDOWS_DISTRIBUTION.md) for the detailed contract.
 
 ## Sync modes
 
@@ -246,7 +246,7 @@ BrightspaceMirror/
 └── _system/
 ```
 
-- **Term folders** contain full per-course mirror trees.
+- **Term folders** contain full per-course content trees.
 - **`_school/`** contains lightweight cross-course summaries and current-term indexes.
 - **`_system/`** contains crawler schema, state, migration, debug, and publishing metadata. `_system/` is not published to Drive by default.
 
@@ -294,12 +294,12 @@ Enabling it requires both an explicit `enabled: true` choice and a destination s
 {
   "drivePublish": {
     "enabled": true,
-    "destination": "G:\\My Drive\\CourseMirror"
+    "destination": "G:\\My Drive\\CourseStow"
   }
 }
 ```
 
-The intended model is Google Drive for desktop in streaming or mirrored mode. CourseMirror copies the local mirror into a mounted Drive path rather than implementing OAuth itself.
+The intended model is Google Drive for desktop in streaming or mirrored mode. CourseStow copies the local mirror into a mounted Drive path rather than implementing OAuth itself.
 
 The publisher is incremental: it copies new or changed files, leaves unchanged files alone, removes only files it previously published that were later removed locally, does not purge unrelated user files, and verifies tracked files during Full publishing.
 
@@ -326,15 +326,15 @@ Large video/audio binaries are index-only by default. Asset behavior and size li
 
 ## Privacy and safety
 
-CourseMirror is designed to avoid submissions, edits, and other intentional state-changing operations. After authentication, the request guard blocks `PUT`, `PATCH`, and `DELETE`, blocks same-origin form/document `POST` requests, and blocks POST endpoints/bodies that look state-changing. Brightspace also uses some POST-based RPC/XHR requests for read operations, so benign read-like POSTs remain allowed.
+CourseStow is designed to avoid submissions, edits, and other intentional state-changing operations. After authentication, the request guard blocks `PUT`, `PATCH`, and `DELETE`, blocks same-origin form/document `POST` requests, and blocks POST endpoints/bodies that look state-changing. Brightspace also uses some POST-based RPC/XHR requests for read operations, so benign read-like POSTs remain allowed.
 
 That means the project is **read-focused, not mathematically read-only**. Visiting Brightspace pages can still update normal platform metadata such as viewed state or "Last Visited" information.
 
 Never commit or share:
 
-- `%LOCALAPPDATA%\CourseMirror\BrowserProfile\` (and legacy `.brightspace-profile/`) — browser cookies, sessions, and potentially saved-login information
+- `%LOCALAPPDATA%\CourseStow\BrowserProfile\` (and legacy `.brightspace-profile/`) — browser cookies, sessions, and potentially saved-login information
 - the user-selected mirror (and legacy `BrightspaceMirror/`) — private student/course content
-- `%LOCALAPPDATA%\CourseMirror\config.json` (and legacy repo `config.json`) — local machine configuration
+- `%LOCALAPPDATA%\CourseStow\config.json` (and legacy repo `config.json`) — local machine configuration
 - logs or exported data containing private academic information
 
 These paths are ignored by the included `.gitignore`. CI also scans the working tree and full Git history for known credential formats, institution-email/URL patterns, student-ID-like fields, and forbidden sensitive paths. See [SECURITY.md](SECURITY.md) for the full security model.
@@ -375,7 +375,7 @@ A green Windows smoke test proves the packaged Node/Playwright/browser path work
 
 ## Release
 
-Latest stable release: **[v2.4.1](https://github.com/aryanramz/coursemirror/releases/tag/v2.4.1)**
+Latest stable release: **[v2.4.1](https://github.com/aryanramz/coursestow/releases/tag/v2.4.1)**
 
 Current reviewed release-candidate source version: **3.0.0**. Version 3.0.0 has not been tagged or publicly released.
 

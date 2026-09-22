@@ -1,4 +1,4 @@
-using CourseMirror.Security;
+using CourseStow.Security;
 using System;
 using System.IO;
 using System.IO.Pipes;
@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
 
-namespace CourseMirror.CredentialHelper
+namespace CourseStow.CredentialHelper
 {
     internal sealed class PipeRequest
     {
@@ -25,15 +25,15 @@ namespace CourseMirror.CredentialHelper
         private static int Main(string[] args)
         {
             if (args.Length == 2 && args[0] == "--self-test") return SelfTest(args[1]);
-            if (args.Length != 2 || args[0] != "--pipe" || !Regex.IsMatch(args[1], @"^CourseMirror-Credential-[A-Za-z0-9-]+$")) return 2;
+            if (args.Length != 2 || args[0] != "--pipe" || !Regex.IsMatch(args[1], @"^CourseStow-Credential-[A-Za-z0-9-]+$")) return 2;
             try
             {
-                if (CourseMirrorProcessIdentity.IsMutexActive(CourseMirrorProcessIdentity.InstallerLifecycleMutexName)) return 4;
+                if (CourseStowProcessIdentity.IsMutexActive(CourseStowProcessIdentity.InstallerLifecycleMutexName)) return 4;
             }
             catch { return 4; }
 
             bool ownsActivityMutex;
-            using (var activityMutex = new Mutex(true, CourseMirrorProcessIdentity.CredentialHelperMutexName, out ownsActivityMutex))
+            using (var activityMutex = new Mutex(true, CourseStowProcessIdentity.CredentialHelperMutexName, out ownsActivityMutex))
             {
                 if (!ownsActivityMutex) return 3;
                 try

@@ -6,7 +6,7 @@ using System.Security.Principal;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 
-namespace CourseMirror.ControlPanel
+namespace CourseStow.ControlPanel
 {
     internal sealed class ScheduledTaskRequest
     {
@@ -71,7 +71,7 @@ namespace CourseMirror.ControlPanel
 
     internal sealed class WindowsTaskSchedulerService : ITaskSchedulerService
     {
-        internal const string FolderPath = @"\CourseMirror";
+        internal const string FolderPath = @"\CourseStow";
         internal const string LegacyFolderPath = @"\Brightspace Sync";
         internal const string TaskArguments = "--scheduled-run";
 
@@ -138,7 +138,7 @@ namespace CourseMirror.ControlPanel
                 }
                 catch (Exception error)
                 {
-                    throw new TaskSchedulerOperationException("Windows could not snapshot the CourseMirror scheduled task.", error);
+                    throw new TaskSchedulerOperationException("Windows could not snapshot the CourseStow scheduled task.", error);
                 }
                 finally
                 {
@@ -251,7 +251,7 @@ namespace CourseMirror.ControlPanel
             if (request.IntervalHours < 1 || request.IntervalHours > 24)
                 throw new ArgumentOutOfRangeException("request", "Scheduled interval must be from 1 to 24 hours.");
             if (String.IsNullOrWhiteSpace(request.ExecutablePath) || !File.Exists(request.ExecutablePath))
-                throw new TaskSchedulerOperationException("The CourseMirror application executable is unavailable.");
+                throw new TaskSchedulerOperationException("The CourseStow application executable is unavailable.");
 
             ScheduledTaskStatus current = Inspect(request);
             if ((!request.Enabled && !current.Exists) || (request.Enabled && current.MatchesExpected)) return;
@@ -271,7 +271,7 @@ namespace CourseMirror.ControlPanel
                     dynamic definition = service.NewTask(0);
                     try
                     {
-                        definition.RegistrationInfo.Description = "Runs CourseMirror in the signed-in user's desktop session.";
+                        definition.RegistrationInfo.Description = "Runs CourseStow in the signed-in user's desktop session.";
                         definition.Principal.UserId = _userSid;
                         definition.Principal.LogonType = TaskLogonInteractiveToken;
                         definition.Principal.RunLevel = TaskRunLevelLeastPrivilege;
@@ -341,7 +341,7 @@ namespace CourseMirror.ControlPanel
             catch (TaskSchedulerOperationException) { throw; }
             catch (Exception error)
             {
-                throw new TaskSchedulerOperationException("Windows could not update CourseMirror scheduling.", error);
+                throw new TaskSchedulerOperationException("Windows could not update CourseStow scheduling.", error);
             }
             finally { ReleaseComObject(service); }
         }

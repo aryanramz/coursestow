@@ -1,16 +1,16 @@
 {
-  "name": "coursemirror",
+  "name": "coursestow",
   "version": "3.0.0",
   "private": true,
   "type": "module",
-  "description": "CourseMirror — a read-focused Windows mirroring utility for D2L Brightspace.",
+  "description": "CourseStow — a read-focused Windows mirroring utility for D2L Brightspace.",
   "author": "aryanramz",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aryanramz/coursemirror.git"
+    "url": "https://github.com/aryanramz/coursestow.git"
   },
-  "homepage": "https://github.com/aryanramz/coursemirror#readme",
-  "bugs": "https://github.com/aryanramz/coursemirror/issues",
+  "homepage": "https://github.com/aryanramz/coursestow#readme",
+  "bugs": "https://github.com/aryanramz/coursestow/issues",
   "scripts": {
     "syntax-check": "node scripts/syntax-check.mjs",
     "sync": "node src/launcher.mjs full",

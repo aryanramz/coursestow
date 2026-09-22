@@ -22,7 +22,7 @@ export async function createTemporaryAssemblyVersionSource(repositoryRoot, build
   }
 
   const assemblyVersion = `${packageVersion}.0`;
-  const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), `coursemirror-${buildLabel}-assembly-version-`));
+  const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), `coursestow-${buildLabel}-assembly-version-`));
   const sourceFile = path.join(temporaryDirectory, 'AssemblyVersion.g.cs');
   const source = [
     'using System.Reflection;',

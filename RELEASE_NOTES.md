@@ -1,21 +1,21 @@
 # v3.0.0 — Windows release candidate (not yet published)
 
-CourseMirror 3.0.0 completes the reviewed Windows desktop, installer, setup, scheduling, authentication, update-checking, and packaging work. No `v3.0.0` tag or GitHub Release exists yet; final naming and clean-VM qualification remain separate gates.
+CourseStow 3.0.0 completes the reviewed Windows desktop, installer, setup, scheduling, authentication, update-checking, and packaging work. No `v3.0.0` tag or GitHub Release exists yet; final naming and clean-VM qualification remain separate gates.
 
 ## User-facing changes since v2.4.1
 
 - Added a normal per-user Windows installer for Windows 10 22H2+ and Windows 11 x64. It needs no administrator elevation and bundles a private Node.js runtime, so end users do not need Node.js, npm, or Git.
-- Added the native CourseMirror control panel with Quick Sync, Full Sync, Open Mirror, Settings, Refresh Login, logs, status polling, sanitized diagnostics, and update notices.
+- Added the native CourseStow control panel with Quick Sync, Full Sync, Open Mirror, Settings, Refresh Login, logs, status polling, sanitized diagnostics, and update notices.
 - Added shared first-run and Settings UI for the Brightspace URL, mirror folder, optional Google Drive publishing, optional supported automatic login, browser selection, and optional Windows scheduling.
 - Completed **Save & Sign In**: successful first-run settings launch the existing visible SSO/MFA flow, followed by exactly one initial Full Sync only after authentication succeeds.
-- Kept the persistent browser session private under `%LOCALAPPDATA%\CourseMirror\BrowserProfile`; MFA is never bypassed. Supported Stony Brook automatic login is opt-in and stores its password only in Windows Credential Manager.
+- Kept the persistent browser session private under `%LOCALAPPDATA%\CourseStow\BrowserProfile`; MFA is never bypassed. Supported Stony Brook automatic login is opt-in and stores its password only in Windows Credential Manager.
 - Added official compatibility-tested support for Microsoft Edge, Google Chrome, and Brave. Vivaldi, Opera, Opera GX, and Chromium use best-effort discovery, and users can select another Chromium executable for an isolated Playwright compatibility probe.
-- Added missing-browser recovery with Retry, manual executable selection, automatic-detection reset, and a fixed trusted Microsoft Edge download link. CourseMirror never bundles or silently installs a browser.
-- Added explicit transactional import from a user-selected CourseMirror or supported pre-rename Brightspace Sync source checkout. It imports only compatible configuration, BrowserProfile session data, and allowlisted continuity state; mirrors, Drive copies, source, Git data, dependencies, and plaintext credentials are not copied.
+- Added missing-browser recovery with Retry, manual executable selection, automatic-detection reset, and a fixed trusted Microsoft Edge download link. CourseStow never bundles or silently installs a browser.
+- Added explicit transactional import from a user-selected CourseStow or supported pre-rename Brightspace Sync source checkout. It imports only compatible configuration, BrowserProfile session data, and allowlisted continuity state; mirrors, Drive copies, source, Git data, dependencies, and plaintext credentials are not copied.
 - Added optional current-user Task Scheduler integration with safe create/update/disable rollback and Quick/Full cadence selection.
 - Added installer upgrade, repair, downgrade blocking, active-operation preflight, scheduled-task reconciliation, and privacy-preserving uninstall behavior. Default uninstall preserves private data, credentials, mirror, and Drive output.
 - Added asynchronous public GitHub Releases update checking. It does not download or execute installers and sends no telemetry.
-- Added a tag-driven future release pipeline that verifies the versioned installer and SHA-256 sidecar before publication. The expected files are `CourseMirror-3.0.0-Setup.exe` and `CourseMirror-3.0.0-Setup.exe.sha256`.
+- Added a tag-driven future release pipeline that verifies the versioned installer and SHA-256 sidecar before publication. The expected files are `CourseStow-3.0.0-Setup.exe` and `CourseStow-3.0.0-Setup.exe.sha256`.
 - Retained strict private-data/application separation, read-focused network protections, sanitized failure-only logs, and no analytics, telemetry, crash-reporting service, or browser extension.
 
 ## Known release-candidate limitation
