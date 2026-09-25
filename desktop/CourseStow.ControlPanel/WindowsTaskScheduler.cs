@@ -254,7 +254,7 @@ namespace CourseStow.ControlPanel
                 throw new TaskSchedulerOperationException("The CourseStow application executable is unavailable.");
 
             ScheduledTaskStatus current = Inspect(request);
-            if ((!request.Enabled && !current.Exists) || (request.Enabled && current.MatchesExpected)) return;
+            if (!NeedsReconciliation(request, current)) return;
 
             WithService<object>(delegate(dynamic service)
             {
@@ -357,7 +357,14 @@ namespace CourseStow.ControlPanel
             }
         }
 
-        private dynamic GetExactTask(dynamic service, string folderPath)
+        internal static bool NeedsReconciliation(ScheduledTaskRequest request, ScheduledTaskStatus current)
+        {
+            if (request == null) throw new ArgumentNullException("request");
+            if (current == null) throw new ArgumentNullException("current");
+            return !((!request.Enabled && !current.Exists) || (request.Enabled && current.MatchesExpected));
+        }
+
+        internal dynamic GetExactTask(dynamic service, string folderPath)
         {
             dynamic folder = null;
             try
@@ -365,15 +372,15 @@ namespace CourseStow.ControlPanel
                 folder = service.GetFolder(folderPath);
                 return folder.GetTask(_taskName);
             }
-            catch (COMException error)
+            catch (Exception error)
             {
-                if (IsNotFound(error)) return null;
+                if (IsTaskSchedulerObjectNotFound(error)) return null;
                 throw;
             }
             finally { ReleaseComObject(folder); }
         }
 
-        private void DeleteExactTask(dynamic service, string folderPath)
+        internal void DeleteExactTask(dynamic service, string folderPath)
         {
             dynamic task = GetExactTask(service, folderPath);
             if (task == null) return;
@@ -399,10 +406,12 @@ namespace CourseStow.ControlPanel
             finally { ReleaseComObject(folder); }
         }
 
-        private static bool IsNotFound(COMException error)
+        internal static bool IsTaskSchedulerObjectNotFound(Exception error)
         {
+            if (error == null) return false;
             uint code = unchecked((uint)error.HResult);
-            return code == 0x80070002u || code == 0x8004130Fu;
+            return (error is COMException && (code == 0x80070002u || code == 0x8004130Fu))
+                || (error is FileNotFoundException && code == 0x80070002u);
         }
 
         private static int ParseIntervalHours(string interval)

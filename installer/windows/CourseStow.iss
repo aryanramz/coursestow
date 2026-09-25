@@ -68,7 +68,7 @@ Name: "{userprograms}\{#ProductName}"; Filename: "{app}\{#ProductExecutable}"; W
 Name: "{userdesktop}\{#ProductName}"; Filename: "{app}\{#ProductExecutable}"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#ProductExecutable}"; Description: "Launch {#ProductName}"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#ProductExecutable}"; Parameters: "--installer-launch"; Description: "Launch {#ProductName}"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 const

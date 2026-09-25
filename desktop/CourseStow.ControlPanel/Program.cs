@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
 using CourseStow.Security;
@@ -9,6 +10,9 @@ namespace CourseStow.ControlPanel
     {
         internal const string MutexName = CourseStowProcessIdentity.ControlPanelMutexName;
         internal const string LegacyMutexName = CourseStowProcessIdentity.LegacyControlPanelMutexName;
+        internal const string InstallerLaunchArgument = "--installer-launch";
+        internal const int InstallerLaunchTimeoutMilliseconds = 10000;
+        internal const int InstallerLaunchPollMilliseconds = 200;
 
         [STAThread]
         private static int Main(string[] args)
@@ -20,10 +24,18 @@ namespace CourseStow.ControlPanel
             if (args.Length == 2 && args[0] == "--installer-lifecycle-self-test")
                 return InstallerMaintenanceSelfTest.Run(args[1]);
 
-            bool installerActive;
-            try { installerActive = CourseStowProcessIdentity.IsMutexActive(CourseStowProcessIdentity.InstallerLifecycleMutexName); }
+            bool installerReady;
+            try
+            {
+                var timer = Stopwatch.StartNew();
+                installerReady = WaitForInstallerIfRequested(
+                    args,
+                    delegate { return CourseStowProcessIdentity.IsMutexActive(CourseStowProcessIdentity.InstallerLifecycleMutexName); },
+                    Thread.Sleep,
+                    delegate { return timer.ElapsedMilliseconds; });
+            }
             catch { return 4; }
-            if (installerActive)
+            if (!installerReady)
             {
                 if (!IsScheduledRun(args))
                     MessageBox.Show("CourseStow is being installed or repaired. Try again when setup finishes.", "CourseStow", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -63,6 +75,29 @@ namespace CourseStow.ControlPanel
         {
             return args != null && args.Length == 1
                 && String.Equals(args[0], "--scheduled-run", StringComparison.Ordinal);
+        }
+
+        internal static bool IsInstallerLaunch(string[] args)
+        {
+            return args != null && args.Length == 1
+                && String.Equals(args[0], InstallerLaunchArgument, StringComparison.Ordinal);
+        }
+
+        internal static bool WaitForInstallerIfRequested(
+            string[] args, Func<bool> isInstallerActive, Action<int> wait, Func<long> elapsedMilliseconds)
+        {
+            if (isInstallerActive == null) throw new ArgumentNullException("isInstallerActive");
+            if (!IsInstallerLaunch(args)) return !isInstallerActive();
+            if (wait == null) throw new ArgumentNullException("wait");
+            if (elapsedMilliseconds == null) throw new ArgumentNullException("elapsedMilliseconds");
+
+            while (isInstallerActive())
+            {
+                long remaining = InstallerLaunchTimeoutMilliseconds - elapsedMilliseconds();
+                if (remaining <= 0) return false;
+                wait((int)Math.Min(InstallerLaunchPollMilliseconds, remaining));
+            }
+            return true;
         }
     }
 }

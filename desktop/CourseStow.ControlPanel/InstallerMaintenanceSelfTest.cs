@@ -2,6 +2,7 @@ using CourseStow.Security;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
@@ -26,6 +27,40 @@ namespace CourseStow.ControlPanel
                 foreach (string command in commands)
                     Require(InstallerMaintenanceCommand.IsMaintenanceCommand(command), "A fixed maintenance command was not recognized.");
                 Require(!InstallerMaintenanceCommand.IsMaintenanceCommand("--scheduled-run"), "A normal application command was classified as installer maintenance.");
+
+                stage = "installer launch gate";
+                Require(Program.IsInstallerLaunch(new[] { Program.InstallerLaunchArgument }), "Installer launch argument was not recognized.");
+                Require(!Program.IsInstallerLaunch(new[] { Program.InstallerLaunchArgument, "extra" })
+                    && !Program.IsInstallerLaunch(new[] { "--scheduled-run" }), "Installer launch accepted another command.");
+
+                int normalWaits = 0;
+                Require(!Program.WaitForInstallerIfRequested(new string[0], delegate { return true; },
+                    delegate { normalWaits++; }, delegate { return 0; }) && normalWaits == 0,
+                    "Ordinary launch did not reject an active installer immediately.");
+
+                long delayedElapsed = 0;
+                int delayedProbes = 0;
+                int delayedWaits = 0;
+                Require(Program.WaitForInstallerIfRequested(new[] { Program.InstallerLaunchArgument },
+                    delegate { return ++delayedProbes <= 2; },
+                    delegate(int milliseconds) { delayedElapsed += milliseconds; delayedWaits++; },
+                    delegate { return delayedElapsed; }) && delayedWaits == 2,
+                    "Installer-triggered launch did not proceed after mutex release.");
+
+                int immediateWaits = 0;
+                Require(Program.WaitForInstallerIfRequested(new[] { Program.InstallerLaunchArgument },
+                    delegate { return false; }, delegate { immediateWaits++; }, delegate { return 0; })
+                    && immediateWaits == 0, "Installer-triggered launch waited without an active installer.");
+
+                long timeoutElapsed = 0;
+                int timeoutWaits = 0;
+                Require(!Program.WaitForInstallerIfRequested(new[] { Program.InstallerLaunchArgument },
+                    delegate { return true; },
+                    delegate(int milliseconds) { timeoutElapsed += milliseconds; timeoutWaits++; },
+                    delegate { return timeoutElapsed; })
+                    && timeoutElapsed == Program.InstallerLaunchTimeoutMilliseconds
+                    && timeoutWaits == Program.InstallerLaunchTimeoutMilliseconds / Program.InstallerLaunchPollMilliseconds,
+                    "Installer-triggered launch did not fail safely at its bounded timeout.");
 
                 stage = "preflight contracts";
                 var idle = new FakeInstallerActivityProbe();
@@ -67,6 +102,71 @@ namespace CourseStow.ControlPanel
                 }
 
                 stage = "schedule contracts";
+                const string syntheticSid = "S-1-5-21-111-222-333-1001";
+                var windowsScheduler = new WindowsTaskSchedulerService(syntheticSid);
+                var missingFolders = new FakeTaskSchedulerComService();
+                missingFolders.SetFailure(WindowsTaskSchedulerService.FolderPath, new FileNotFoundException("Synthetic missing current folder."));
+                missingFolders.SetFailure(WindowsTaskSchedulerService.LegacyFolderPath, new FileNotFoundException("Synthetic missing legacy folder."));
+                Require(windowsScheduler.GetExactTask(missingFolders, WindowsTaskSchedulerService.FolderPath) == null,
+                    "Missing CourseStow folder was not treated as no task.");
+                Require(windowsScheduler.GetExactTask(missingFolders, WindowsTaskSchedulerService.LegacyFolderPath) == null,
+                    "Missing Brightspace Sync folder was not treated as no legacy task.");
+
+                var comMissing = new FakeTaskSchedulerComService();
+                comMissing.SetFailure(WindowsTaskSchedulerService.FolderPath,
+                    new COMException("Synthetic missing folder.", unchecked((int)0x80070002u)));
+                Require(windowsScheduler.GetExactTask(comMissing, WindowsTaskSchedulerService.FolderPath) == null,
+                    "COM missing-folder HRESULT was not treated as no task.");
+
+                var noExactTask = new FakeTaskSchedulerComService();
+                noExactTask.SetFolder(WindowsTaskSchedulerService.FolderPath, new FakeTaskSchedulerComFolder());
+                Require(windowsScheduler.GetExactTask(noExactTask, WindowsTaskSchedulerService.FolderPath) == null,
+                    "Missing exact task in an existing folder was not treated as no task.");
+
+                var unrelatedFileError = new FakeTaskSchedulerComService();
+                unrelatedFileError.SetFailure(WindowsTaskSchedulerService.FolderPath,
+                    new FakeFileNotFoundWithHResult(unchecked((int)0x80070003u)));
+                Require(CaptureException(delegate { windowsScheduler.GetExactTask(unrelatedFileError, WindowsTaskSchedulerService.FolderPath); })
+                    is FakeFileNotFoundWithHResult, "Unrelated FileNotFoundException was suppressed.");
+
+                var unrelatedComError = new FakeTaskSchedulerComService();
+                unrelatedComError.SetFailure(WindowsTaskSchedulerService.FolderPath,
+                    new COMException("Synthetic access failure.", unchecked((int)0x80070005u)));
+                Require(CaptureException(delegate { windowsScheduler.GetExactTask(unrelatedComError, WindowsTaskSchedulerService.FolderPath); })
+                    is COMException, "Unrelated COM exception was suppressed.");
+                Require(!WindowsTaskSchedulerService.IsTaskSchedulerObjectNotFound(new UnauthorizedAccessException()),
+                    "Permission failure was classified as task absence.");
+                var unauthorized = new FakeTaskSchedulerComService();
+                unauthorized.SetFailure(WindowsTaskSchedulerService.FolderPath,
+                    new UnauthorizedAccessException("Synthetic task-folder access denied."));
+                Require(CaptureException(delegate { windowsScheduler.GetExactTask(unauthorized, WindowsTaskSchedulerService.FolderPath); })
+                    is UnauthorizedAccessException, "Task-folder permission failure was suppressed.");
+
+                var disabledRequest = new ScheduledTaskRequest { Enabled = false, IntervalHours = 6, ExecutablePath = "C:\\Synthetic\\CourseStow.exe" };
+                Require(!WindowsTaskSchedulerService.NeedsReconciliation(disabledRequest,
+                    new ScheduledTaskStatus { Exists = false, State = "not-installed" }),
+                    "Disabled clean install would mutate Task Scheduler without any task.");
+                Require(WindowsTaskSchedulerService.NeedsReconciliation(disabledRequest,
+                    new ScheduledTaskStatus { Exists = true, State = "legacy-task" }),
+                    "Disabled scheduling would leave a stale legacy task behind.");
+
+                var legacyFolder = new FakeTaskSchedulerComFolder();
+                legacyFolder.AddTask(windowsScheduler.ManagedTaskName);
+                legacyFolder.AddTask("Unrelated task");
+                var legacyService = new FakeTaskSchedulerComService();
+                legacyService.SetFolder(WindowsTaskSchedulerService.LegacyFolderPath, legacyFolder);
+                windowsScheduler.DeleteExactTask(legacyService, WindowsTaskSchedulerService.LegacyFolderPath);
+                Require(!legacyFolder.HasTask(windowsScheduler.ManagedTaskName)
+                    && legacyFolder.HasTask("Unrelated task") && legacyFolder.DeleteCount == 1,
+                    "Stale-task cleanup changed or missed the managed legacy task.");
+
+                var cleanDisabledBackend = new InstallerSelfTestBackend(false, false, 6);
+                var cleanDisabledScheduler = new RecordingInstallerTaskScheduler();
+                Require(InstallerMaintenanceCommand.RunReconcileSchedule(cleanDisabledBackend, cleanDisabledScheduler,
+                    "C:\\Synthetic\\CourseStow.exe") == InstallerMaintenanceExitCode.Success
+                    && cleanDisabledScheduler.LastRequest != null && !cleanDisabledScheduler.LastRequest.Enabled,
+                    "Disabled clean-install reconciliation did not succeed without a task.");
+
                 var disabledScheduler = new RecordingInstallerTaskScheduler();
                 var unconfiguredBackend = new InstallerSelfTestBackend(false, true, 4);
                 Require(InstallerMaintenanceCommand.RunReconcileSchedule(unconfiguredBackend, disabledScheduler, "C:\\Program Files\\CourseStow\\CourseStow.exe") == InstallerMaintenanceExitCode.Success, "Unconfigured schedule reconciliation failed.");
@@ -110,6 +210,8 @@ namespace CourseStow.ControlPanel
                     schemaVersion = 1,
                     maintenanceCommandsBypassGui = true,
                     fixedCommandArgumentsOnly = true,
+                    normalLaunchInstallerGuard = true,
+                    installerLaunchWaitAndTimeout = true,
                     canonicalMutexBusy = true,
                     legacyMutexBusy = true,
                     credentialHelperBusy = true,
@@ -117,6 +219,10 @@ namespace CourseStow.ControlPanel
                     safelyStaleLockSafe = true,
                     preflightExitCodes = new { safe = 0, busy = 10, inspectionFailure = 11, operationFailure = 12 },
                     unconfiguredScheduleDisabled = true,
+                    missingTaskFoldersSafe = true,
+                    unrelatedSchedulerErrorsPropagate = true,
+                    disabledCleanInstallNoTaskMutation = true,
+                    staleLegacyTaskCleanupPreserved = true,
                     configuredScheduleReconciled = true,
                     scheduleRemovalNarrow = true,
                     credentialRemovalNarrow = true,
@@ -144,6 +250,59 @@ namespace CourseStow.ControlPanel
         private static void Require(bool condition, string message)
         {
             if (!condition) throw new InvalidDataException(message);
+        }
+
+        private static Exception CaptureException(Action action)
+        {
+            try { action(); return null; }
+            catch (Exception error) { return error; }
+        }
+    }
+
+    internal sealed class FakeFileNotFoundWithHResult : FileNotFoundException
+    {
+        internal FakeFileNotFoundWithHResult(int hresult) : base("Synthetic unrelated file failure.")
+        {
+            HResult = hresult;
+        }
+    }
+
+    internal sealed class FakeTaskSchedulerComService
+    {
+        private readonly Dictionary<string, object> _folders = new Dictionary<string, object>(StringComparer.Ordinal);
+
+        internal void SetFailure(string path, Exception error) { _folders[path] = error; }
+        internal void SetFolder(string path, FakeTaskSchedulerComFolder folder) { _folders[path] = folder; }
+
+        public object GetFolder(string path)
+        {
+            object result;
+            if (!_folders.TryGetValue(path, out result)) throw new FileNotFoundException("Synthetic missing folder.");
+            var error = result as Exception;
+            if (error != null) throw error;
+            return result;
+        }
+    }
+
+    internal sealed class FakeTaskSchedulerComFolder
+    {
+        private readonly Dictionary<string, object> _tasks = new Dictionary<string, object>(StringComparer.Ordinal);
+        internal int DeleteCount { get; private set; }
+
+        internal void AddTask(string name) { _tasks.Add(name, new object()); }
+        internal bool HasTask(string name) { return _tasks.ContainsKey(name); }
+
+        public object GetTask(string name)
+        {
+            object task;
+            if (!_tasks.TryGetValue(name, out task)) throw new FileNotFoundException("Synthetic missing task.");
+            return task;
+        }
+
+        public void DeleteTask(string name, int flags)
+        {
+            if (flags != 0 || !_tasks.Remove(name)) throw new InvalidOperationException("Unexpected task deletion.");
+            DeleteCount++;
         }
     }
 
