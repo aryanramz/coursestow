@@ -64,7 +64,7 @@ assert.match(productInclude, /https:\/\/dotnet\.microsoft\.com\/en-us\/download\
 assert.match(installerSource, /^Name: "desktopicon";.+Flags: unchecked$/m);
 assert.equal((installerSource.match(/^Name: "\{userprograms\}/gm) || []).length, 1, 'installer must create exactly one direct Start Menu shortcut');
 assert.doesNotMatch(installerSource, /\{group\}|unins000|Startup|RunOnce|URLProtocol|ChangesAssociations/i);
-assert.match(installerSource, /^Filename: "\{app\}\\\{#ProductExecutable\}"; Description: "Launch \{#ProductName\}";.+Flags: nowait postinstall skipifsilent$/m);
+assert.match(installerSource, /^Filename: "\{app\}\\\{#ProductExecutable\}"; Parameters: "--installer-launch"; Description: "Launch \{#ProductName\}";.+Flags: nowait postinstall skipifsilent$/m);
 assert.doesNotMatch(installerSource, /^\s*(?:Filename|Name):.+(?:Settings|Logs|Documentation|Uninstall)/mi);
 
 assert.match(buildScript, /\$ExpectedCompilerVersion = '7\.1\.0'/);

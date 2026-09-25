@@ -72,6 +72,19 @@ assert.match(installer, /ExtractTemporaryFiles\('\{app\}\\\*'\)/);
 assert.match(installer, /--installer-preflight/);
 assert.match(installer, /^SetupMutex=Local\\CourseStow\.InstallerLifecycle$/m);
 assert.match(program, /CourseStowProcessIdentity\.InstallerLifecycleMutexName/);
+const postinstallLaunch = installer.split(/\r?\n/).find(line => line.includes('Description: "Launch {#ProductName}"'));
+assert(postinstallLaunch, 'Finish-page launch entry is missing');
+assert.match(postinstallLaunch, /Parameters: "--installer-launch"/,
+  'Finish-page launch must use the installer-only wait path');
+assert.match(postinstallLaunch, /Flags: nowait postinstall skipifsilent/,
+  'Finish-page launch must not block Setup while waiting for its mutex');
+for (const iconLine of installer.split(/\r?\n/).filter(line => line.startsWith('Name: "{userprograms}') || line.startsWith('Name: "{userdesktop}'))) {
+  assert.doesNotMatch(iconLine, /--installer-launch/,
+    'Normal Start Menu and desktop launches must not use the installer-only path');
+}
+assert.match(program, /InstallerLaunchTimeoutMilliseconds = 10000/);
+assert.match(program, /IsInstallerLaunch\(args\)/);
+assert.match(program, /WaitForInstallerIfRequested\(/);
 assert.match(installer, /MB_RETRYCANCEL/);
 assert.match(installer, /CourseStow is currently running/);
 assert.doesNotMatch(installer, /taskkill|TerminateProcess|Stop-Process|kill\s*\(/i);
