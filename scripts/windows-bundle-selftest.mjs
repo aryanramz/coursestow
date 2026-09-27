@@ -436,6 +436,9 @@ try {
   assert.equal(controlPanelResult.firstRunPreservesEnvironmentOverride, true, 'first-run setup must preserve an environment-controlled mirror');
   assert.equal(controlPanelResult.manualBrowserRoundTrips, true, 'manual browser path must round-trip through the settings request');
   assert.equal(controlPanelResult.automaticBrowserReset, true, 'reset-to-automatic must clear the manual browser path');
+  assert.equal(controlPanelResult.browserLayoutFitsNormalDpi, true, 'browser actions must fit without overlap at normal font size');
+  assert.equal(controlPanelResult.browserLayoutFitsScaledFont, true, 'browser actions must wrap without clipping at 150% font size');
+  assert.equal(controlPanelResult.missingBrowserLayoutFitsScaledFont, true, 'long browser status and recovery actions must fit at 150% font size');
   assert.equal(controlPanelResult.missingBrowserRecoveryVisible, true, 'missing browser must expose recovery choices and the fixed Edge URL');
   assert.equal(controlPanelResult.importOfferedOnlyOnFirstRun, true, 'source import must be offered only during eligible first-run setup');
   assert.equal(controlPanelResult.settingsCancelSavesNothing, true, 'cancelling Settings must not call the save bridge');

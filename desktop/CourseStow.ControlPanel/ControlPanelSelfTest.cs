@@ -148,6 +148,16 @@ namespace CourseStow.ControlPanel
                     settingsForm.CancelForSelfTest();
                 }
                 bool settingsCancelSavesNothing = cancelBackend.SaveCalls == 0;
+                bool browserLayoutFitsNormalDpi;
+                bool browserLayoutFitsScaledFont;
+                using (var settingsForm = new SetupSettingsForm(cancelBackend, currentSettings, false, new NullFolderPicker()))
+                {
+                    stage = "browser layout at normal font size";
+                    browserLayoutFitsNormalDpi = settingsForm.BrowserLayoutFitsForSelfTest(1F);
+                    stage = "browser layout at scaled font size";
+                    browserLayoutFitsScaledFont = settingsForm.BrowserLayoutFitsForSelfTest(1.5F);
+                }
+                stage = "save settings through shared form";
                 var formSaveBackend = new ScriptedBackendClient(status, new BackendProcessResult { ExitCode = 0 });
                 bool sharedSettingsFormSavesThroughBackend;
                 using (var settingsForm = new SetupSettingsForm(formSaveBackend, currentSettings, false, new NullFolderPicker()))
@@ -255,13 +265,17 @@ namespace CourseStow.ControlPanel
                     browser = new DesktopBrowserSettings { schemaVersion = 1, engine = "chromium", available = false, validationStatus = "not-detected" }
                 };
                 bool missingBrowserRecoveryVisible;
+                bool missingBrowserLayoutFitsScaledFont;
                 bool importOfferedOnlyOnFirstRun;
                 using (var settingsForm = new SetupSettingsForm(cancelBackend, missingBrowserSettings, true, new NullFolderPicker()))
                 {
                     missingBrowserRecoveryVisible = settingsForm.BrowserStatusForSelfTest.Contains("No compatible Chromium browser")
                         && SetupSettingsForm.EdgeDownloadUrl == "https://www.microsoft.com/edge/download";
+                    stage = "missing-browser layout at scaled font size";
+                    missingBrowserLayoutFitsScaledFont = settingsForm.BrowserLayoutFitsForSelfTest(1.5F);
                     importOfferedOnlyOnFirstRun = settingsForm.ImportVisibleForSelfTest;
                 }
+                stage = "missing-browser recovery controls";
                 using (var settingsForm = new SetupSettingsForm(cancelBackend, missingBrowserSettings, false, new NullFolderPicker()))
                     importOfferedOnlyOnFirstRun = importOfferedOnlyOnFirstRun && !settingsForm.ImportVisibleForSelfTest;
 
@@ -973,6 +987,9 @@ namespace CourseStow.ControlPanel
                     firstRunPreservesEnvironmentOverride = firstRunPreservesEnvironmentOverride,
                     manualBrowserRoundTrips = manualBrowserRoundTrips,
                     automaticBrowserReset = automaticBrowserReset,
+                    browserLayoutFitsNormalDpi = browserLayoutFitsNormalDpi,
+                    browserLayoutFitsScaledFont = browserLayoutFitsScaledFont,
+                    missingBrowserLayoutFitsScaledFont = missingBrowserLayoutFitsScaledFont,
                     missingBrowserRecoveryVisible = missingBrowserRecoveryVisible,
                     importOfferedOnlyOnFirstRun = importOfferedOnlyOnFirstRun,
                     settingsCancelSavesNothing = settingsCancelSavesNothing,

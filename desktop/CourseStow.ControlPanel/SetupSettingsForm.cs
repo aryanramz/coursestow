@@ -59,6 +59,7 @@ namespace CourseStow.ControlPanel
         private readonly Button _chooseBrowser = new Button();
         private readonly Button _automaticBrowser = new Button();
         private readonly LinkLabel _edgeDownload = new LinkLabel();
+        private readonly FlowLayoutPanel _browserActions = new FlowLayoutPanel();
         private readonly Button _importSource = new Button();
         private readonly GroupBox _driveGroup = new GroupBox();
         private readonly GroupBox _scheduleGroup = new GroupBox();
@@ -81,6 +82,8 @@ namespace CourseStow.ControlPanel
         private bool _credentialInspectionFailed;
         private bool _deleteCredentialRequested;
         private bool _saving;
+        private bool _browserLayoutReady;
+        private bool _layingOutBrowserGroup;
         private DesktopScheduleSettings _committedSchedule;
 
         internal SetupSettingsForm(IDesktopBackendClient backend, DesktopSettings settings, bool firstRun, IFolderPicker folderPicker)
@@ -250,6 +253,8 @@ namespace CourseStow.ControlPanel
                 title, intro, urlLabel, _baseUrl, mirrorLabel, _mirrorDir, _mirrorBrowse,
                 overrideLabel, _browserGroup, _importSource, _authenticationGroup, _driveGroup, _scheduleGroup, _validation, _save, _cancel
             });
+            _browserLayoutReady = true;
+            LayoutBrowserGroup();
             UpdateDriveControls();
             UpdateAuthenticationControls();
         }
@@ -292,6 +297,44 @@ namespace CourseStow.ControlPanel
         internal string BrowserStatusForSelfTest { get { return _browserStatus.Text; } }
 
         internal string BrowserPathForSelfTest { get { return _manualBrowserPath; } }
+
+        internal bool BrowserLayoutFitsForSelfTest(float fontScale)
+        {
+            Font originalFont = Font;
+            using (var scaledFont = new Font(originalFont.FontFamily, originalFont.Size * fontScale, originalFont.Style))
+            {
+                try
+                {
+                    _browserGroup.Font = scaledFont;
+                    LayoutBrowserGroup();
+                    if (!_browserGroup.ClientRectangle.Contains(_browserStatus.Bounds)
+                        || !_browserGroup.ClientRectangle.Contains(_browserActions.Bounds)
+                        || _browserStatus.Height < _browserStatus.GetPreferredSize(new Size(_browserStatus.MaximumSize.Width, 0)).Height)
+                        return false;
+                    int nextSectionTop = _importSourceAvailable
+                        ? _importSource.Top
+                        : (_authenticationGroup.Visible ? _authenticationGroup.Top : _driveGroup.Top);
+                    if (_browserGroup.Bottom > nextSectionTop) return false;
+                    Control[] actions = { _retryBrowser, _chooseBrowser, _automaticBrowser, _edgeDownload };
+                    for (int index = 0; index < actions.Length; index++)
+                    {
+                        if (!_browserActions.ClientRectangle.Contains(actions[index].Bounds)
+                            || actions[index].Width < actions[index].GetPreferredSize(Size.Empty).Width)
+                            return false;
+                        for (int other = index + 1; other < actions.Length; other++)
+                            if (actions[index].Bounds.IntersectsWith(actions[other].Bounds)) return false;
+                    }
+                    return _edgeDownload.Parent == _browserActions
+                        && _browserActions.WrapContents
+                        && (fontScale > 1F || _edgeDownload.Top < _retryBrowser.Bottom);
+                }
+                finally
+                {
+                    _browserGroup.Font = originalFont;
+                    LayoutBrowserGroup();
+                }
+            }
+        }
 
         internal bool ImportVisibleForSelfTest { get { return _importSourceAvailable; } }
 
@@ -349,19 +392,20 @@ namespace CourseStow.ControlPanel
             _browserGroup.Text = "Compatible Chromium browser";
             _browserGroup.Location = new Point(25, 224);
             _browserGroup.Size = new Size(540, 132);
+            _browserGroup.SizeChanged += delegate { if (_browserLayoutReady) LayoutBrowserGroup(); };
+            _browserGroup.FontChanged += delegate { if (_browserLayoutReady) LayoutBrowserGroup(); };
 
-            _browserStatus.AutoEllipsis = true;
+            _browserStatus.AutoSize = true;
+            _browserStatus.MaximumSize = new Size(508, 0);
             _browserStatus.Location = new Point(14, 23);
-            _browserStatus.Size = new Size(508, 34);
+            _browserStatus.TextChanged += delegate { if (_browserLayoutReady) LayoutBrowserGroup(); };
 
             _retryBrowser.Text = "Retry";
-            _retryBrowser.Location = new Point(14, 76);
-            _retryBrowser.Size = new Size(72, 30);
+            ConfigureBrowserAction(_retryBrowser, 72, 30);
             _retryBrowser.Click += async delegate { await DetectAutomaticBrowserAsync(); };
 
             _chooseBrowser.Text = "Choose browser executable...";
-            _chooseBrowser.Location = new Point(96, 76);
-            _chooseBrowser.Size = new Size(181, 30);
+            ConfigureBrowserAction(_chooseBrowser, 181, 30);
             _chooseBrowser.Click += async delegate
             {
                 string selected = _executablePicker.SelectExecutable(this, _manualBrowserPath);
@@ -369,8 +413,7 @@ namespace CourseStow.ControlPanel
             };
 
             _automaticBrowser.Text = "Use automatic";
-            _automaticBrowser.Location = new Point(287, 76);
-            _automaticBrowser.Size = new Size(108, 30);
+            ConfigureBrowserAction(_automaticBrowser, 108, 30);
             _automaticBrowser.Click += async delegate
             {
                 _manualBrowserPath = String.Empty;
@@ -379,16 +422,52 @@ namespace CourseStow.ControlPanel
 
             _edgeDownload.AutoSize = true;
             _edgeDownload.Text = "Get Microsoft Edge";
-            _edgeDownload.Location = new Point(407, 84);
+            _edgeDownload.Margin = new Padding(0, 8, 0, 0);
             _edgeDownload.LinkClicked += delegate { OpenEdgeDownloadPage(); };
 
-            _browserGroup.Controls.AddRange(new Control[] {
-                _browserStatus, _retryBrowser, _chooseBrowser, _automaticBrowser, _edgeDownload
+            _browserActions.Location = new Point(14, 76);
+            _browserActions.Size = new Size(512, 60);
+            _browserActions.FlowDirection = FlowDirection.LeftToRight;
+            _browserActions.WrapContents = true;
+            _browserActions.Margin = Padding.Empty;
+            _browserActions.TabStop = false;
+            _retryBrowser.TabIndex = 0;
+            _chooseBrowser.TabIndex = 1;
+            _automaticBrowser.TabIndex = 2;
+            _edgeDownload.TabIndex = 3;
+            _browserActions.Controls.AddRange(new Control[] {
+                _retryBrowser, _chooseBrowser, _automaticBrowser, _edgeDownload
             });
+            _browserGroup.Controls.AddRange(new Control[] { _browserStatus, _browserActions });
             DesktopBrowserSettings browser = settings.browser;
             if (browser != null && browser.configuredManually)
                 _manualBrowserPath = browser.executablePath ?? String.Empty;
             DisplayBrowser(browser);
+        }
+
+        private static void ConfigureBrowserAction(Button button, int width, int height)
+        {
+            button.AutoSize = true;
+            button.AutoSizeMode = AutoSizeMode.GrowOnly;
+            button.MinimumSize = new Size(width, height);
+            button.Margin = new Padding(0, 0, 10, 0);
+        }
+
+        private void LayoutBrowserGroup()
+        {
+            if (!_browserLayoutReady || _layingOutBrowserGroup) return;
+            _layingOutBrowserGroup = true;
+            try
+            {
+                int contentWidth = _browserGroup.ClientSize.Width - 28;
+                _browserStatus.MaximumSize = new Size(contentWidth, 0);
+                _browserActions.Width = contentWidth;
+                _browserActions.Top = Math.Max(76, _browserStatus.Bottom + 8);
+                _browserActions.Height = _browserActions.GetPreferredSize(new Size(contentWidth, 0)).Height;
+                _browserGroup.Height = Math.Max(132, _browserActions.Bottom + 8);
+                ApplyAuthenticationLayout(SupportsStonyBrookAuthentication(_baseUrl.Text.Trim()));
+            }
+            finally { _layingOutBrowserGroup = false; }
         }
 
         private void DisplayBrowser(DesktopBrowserSettings browser)
@@ -576,13 +655,15 @@ namespace CourseStow.ControlPanel
 
         private void ApplyAuthenticationLayout(bool supported)
         {
+            int browserOffset = Math.Max(0, _browserGroup.Height - 132);
             int importOffset = _importSourceAvailable ? 40 : 0;
-            int authenticationTop = 374 + importOffset;
-            int driveTop = (supported ? 534 : 374) + importOffset;
-            int scheduleTop = (supported ? 649 : 489) + importOffset;
-            int validationTop = (supported ? 788 : 628) + importOffset;
-            int buttonTop = (supported ? 817 : 657) + importOffset;
+            int authenticationTop = 374 + importOffset + browserOffset;
+            int driveTop = (supported ? 534 : 374) + importOffset + browserOffset;
+            int scheduleTop = (supported ? 649 : 489) + importOffset + browserOffset;
+            int validationTop = (supported ? 788 : 628) + importOffset + browserOffset;
+            int buttonTop = (supported ? 817 : 657) + importOffset + browserOffset;
             int contentHeight = buttonTop + 52;
+            _importSource.Location = new Point(25, 365 + browserOffset);
             _authenticationGroup.Location = new Point(25, authenticationTop);
             _driveGroup.Location = new Point(25, driveTop);
             _scheduleGroup.Location = new Point(25, scheduleTop);
