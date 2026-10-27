@@ -8,6 +8,7 @@ async function runPublish(config) {
   if (result.skipped) {
     console.log(`Drive publish skipped: ${result.reason}.`);
     if (result.destination) console.log(`Destination: ${result.destination}`);
+    if (result.enabled) process.exitCode = 2;
     return;
   }
   console.log(`Drive publish complete: ${result.copied} copied, ${result.deleted} deleted, ${result.unchanged} unchanged, ${result.failed} failed.`);
@@ -23,6 +24,7 @@ async function main() {
   if (!lock.acquired) {
     console.log(`Another CourseStow operation is already running: ${describeActiveLock(lock)}.`);
     console.log('Manual Drive publish was skipped so it cannot copy a partially-updated mirror.');
+    process.exitCode = 3;
     return;
   }
   try {

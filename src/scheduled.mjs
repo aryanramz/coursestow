@@ -17,7 +17,7 @@ export const SCHEDULED_LOG_MAX_BYTES = 64 * 1024;
 const SCHEDULED_CATEGORIES = new Set([
   'completed', 'sync-failed', 'operation-active', 'launch-failed',
   'configuration-error', 'configuration-required', 'disabled',
-  'refresh-login-required'
+  'refresh-login-required', 'publish-incomplete'
 ]);
 
 export async function lastFullSync(outputDir, stateDir, io = fs) {
@@ -148,7 +148,9 @@ export async function runScheduled({
       category = 'refresh-login-required';
       await setAttention(attentionStateDir).catch(() => {});
     } else {
-      category = exitCode === 0 ? 'completed' : (exitCode === 3 ? 'operation-active' : 'sync-failed');
+      category = exitCode === 0 ? 'completed'
+        : (exitCode === 3 ? 'operation-active'
+          : (exitCode === 2 ? 'publish-incomplete' : 'sync-failed'));
     }
   } catch {
     exitCode = 1;

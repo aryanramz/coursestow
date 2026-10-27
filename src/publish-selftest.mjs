@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { publishMirrorToDrive } from './publish.mjs';
+import { publishMirrorToDrive, resolveDrivePublishConfig } from './publish.mjs';
 
 const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'bs-publish-test-'));
 const src = path.join(tmp, 'BrightspaceMirror');
@@ -15,6 +15,10 @@ await fs.writeFile(path.join(src, '2026-Fall', 'Example Course [1]', 'page.txt')
 await fs.writeFile(path.join(src, '2026-Fall', 'Example Course [1]', '_sync_state.json'), '{"legacy":true}');
 await fs.writeFile(path.join(src, '_school', 'current.json'), '{"ok":true}');
 await fs.writeFile(path.join(src, '_system', 'secret.txt'), 'do not publish');
+
+assert.equal(resolveDrivePublishConfig({ drivePublish: {} }).mountWaitMs, 60_000);
+assert.equal(resolveDrivePublishConfig({ drivePublish: { mountWaitMs: -2 } }).mountWaitMs, 0);
+assert.equal(resolveDrivePublishConfig({ drivePublish: { mountWaitMs: 999_999 } }).mountWaitMs, 300_000);
 
 const config = {
   outputDir: src,
@@ -41,6 +45,14 @@ await new Promise(resolve => setTimeout(resolve, 20));
 await fs.writeFile(path.join(src, '2026-Fall', 'Example Course [1]', 'page.txt'), 'hello2');
 r = await publishMirrorToDrive(config, 'quick');
 assert.equal(r.copied, 1);
+
+// Manual recovery must verify remote files even when fingerprints are unchanged.
+const copiedPage = path.join(dst, '2026-Fall', 'Example Course [1]', 'page.txt');
+await fs.unlink(copiedPage);
+r = await publishMirrorToDrive(config, 'manual');
+assert.equal(r.verifiedMissing, 1);
+assert.equal(r.copied, 1);
+assert.equal(await fs.readFile(copiedPage, 'utf8'), 'hello2');
 
 await fs.unlink(path.join(src, '_school', 'current.json'));
 r = await publishMirrorToDrive(config, 'quick');

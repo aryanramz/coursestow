@@ -95,6 +95,19 @@ try {
     timestamp: new Date(now + 1).toISOString(), mode: 'quick', exitCode: 17, category: 'sync-failed'
   });
 
+  const incompletePublish = await runScheduled({
+    loadConfig,
+    spawnProcess: () => {
+      const child = new EventEmitter();
+      queueMicrotask(() => child.emit('exit', 2, null));
+      return child;
+    },
+    now: () => now + 2
+  });
+  assert.equal(incompletePublish, 2);
+  const publishLogEntry = JSON.parse((await fs.readFile(path.join(logsDir, 'scheduled.log'), 'utf8')).trim().split(/\r?\n/).at(-1));
+  assert.equal(publishLogEntry.category, 'publish-incomplete');
+
   const syntheticAuthMarker = 'synthetic-auth-value-must-not-be-logged';
   let authLaunches = 0;
   let credentialReads = 0;
