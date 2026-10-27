@@ -272,6 +272,10 @@ async function runSync(mode, config, { scheduledRun = false } = {}) {
     console.log(`Sync complete. Mirror written to:\n${config.outputDir}`);
 
     const publishResult = await publishMirrorToDrive(config, mode);
+    if (publishResult.enabled && (publishResult.skipped || publishResult.failed > 0)) {
+      console.warn('Local sync succeeded, but Google Drive publishing is incomplete.');
+      process.exitCode = 2;
+    }
     if (publishResult.skipped) {
       console.warn(`Drive publish skipped: ${publishResult.reason}.`);
       if (publishResult.destination) console.warn(`Drive destination: ${publishResult.destination}`);
