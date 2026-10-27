@@ -87,13 +87,15 @@ async function removeEmptyDirs(root) {
 export function resolveDrivePublishConfig(config) {
   const raw = config.drivePublish || {};
   const destination = raw.destination || '';
+  const mountWait = Number(raw.mountWaitMs ?? 60_000);
   return {
     enabled: raw.enabled ?? false,
     destination,
     deleteRemoved: raw.deleteRemoved ?? true,
     verifyDestinationOnFull: raw.verifyDestinationOnFull ?? true,
     retryAttempts: Number(raw.retryAttempts ?? 4),
-    retryDelayMs: Number(raw.retryDelayMs ?? 700)
+    retryDelayMs: Number(raw.retryDelayMs ?? 700),
+    mountWaitMs: Number.isFinite(mountWait) ? Math.max(0, Math.min(300_000, mountWait)) : 60_000
   };
 }
 
@@ -104,8 +106,12 @@ export async function publishMirrorToDrive(config, mode = 'manual') {
 
   const destination = path.resolve(settings.destination);
   const driveRoot = path.parse(destination).root;
-  if (!(await exists(driveRoot))) {
-    return { enabled: true, skipped: true, reason: `drive-not-mounted`, destination };
+  const mountDeadline = Date.now() + settings.mountWaitMs;
+  while (!(await exists(driveRoot))) {
+    if (Date.now() >= mountDeadline) {
+      return { enabled: true, skipped: true, reason: 'drive-not-mounted', destination };
+    }
+    await new Promise(resolve => setTimeout(resolve, Math.min(3_000, mountDeadline - Date.now())));
   }
 
   await ensureDir(destination);
@@ -130,7 +136,7 @@ export async function publishMirrorToDrive(config, mode = 'manual') {
   const stats = { scanned: current.size, copied: 0, deleted: 0, unchanged: 0, failed: 0, verifiedMissing: 0 };
   const nextFiles = {};
   const errors = [];
-  const fullVerify = mode === 'full' && settings.verifyDestinationOnFull;
+  const fullVerify = (mode === 'full' || mode === 'manual') && settings.verifyDestinationOnFull;
 
   for (const [rel, file] of current) {
     const prior = oldFiles[rel];
